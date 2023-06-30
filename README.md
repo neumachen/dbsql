@@ -21,3 +21,7 @@ To use SQLStmt in your Go project, you need to have Go installed and set up. The
 ```shell
 go get github.com/neumachen/sqlstmt@latest
 ```
+
+## NOTES
+
+- Database functions reset the parameter values passed as argumetns OR using statement.SetParameters.
