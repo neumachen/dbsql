@@ -14,11 +14,60 @@ import (
 )
 
 type testingDataType struct {
+	ID        int64
 	UUID      string
 	Word      string
 	Paragraph string
-	Metadata  *json.RawMessage
+	Metadata  json.RawMessage
 	CreatedAt time.Time
+}
+
+func (t *testingDataType) ColumnMapperMap() ColumnMapperMap {
+	return ColumnMapperMap{
+		"testing_datatype_id": MapColumn[int64](func(value int64) error {
+			t.ID = value
+			return nil
+		},
+		),
+		"testing_datatype_uuid": MapColumn[[]uint8](func(value []uint8) error {
+			t.UUID = string(value)
+			return nil
+		},
+		),
+		"word": MapColumn[string](func(value string) error {
+			t.Word = value
+			return nil
+		},
+		),
+		"paragraph": MapColumn[string](func(value string) error {
+			t.Paragraph = value
+			return nil
+		},
+		),
+		"metadata": MapColumn[[]byte](func(value []byte) error {
+			t.Metadata = json.RawMessage(value)
+			return nil
+		},
+		),
+		"created_at": MapColumn[time.Time](func(value time.Time) error {
+			t.CreatedAt = value
+			return nil
+		},
+		),
+	}
+}
+
+func (t *testingDataType) mapRow(row MappedRow) error {
+	if row.Count() < 1 {
+		return nil
+	}
+
+	for column, mapperFunc := range t.ColumnMapperMap() {
+		if err := mapperFunc(column, row); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (t testingDataType) asParameters() []SetParameterFunc {
@@ -47,7 +96,7 @@ func genFakeTestingDataType(t *testing.T) *testingDataType {
 		UUID:      genUUID.String(),
 		Word:      fake.Lorem().Text(10),
 		Paragraph: fake.Lorem().Text(100),
-		Metadata:  &metadata,
+		Metadata:  metadata,
 		CreatedAt: time.Now().UTC(),
 	}
 }
@@ -84,6 +133,11 @@ func (c customer) asParameters(t *testing.T) []SetParameterFunc {
 }
 
 func genFakeCustomerData(t *testing.T) customer {
+	t.Helper()
+
+	// NOTE: given we are running t.Parallel() on tests, to avoid race conditions when
+	// creating a new customer with the email address uniquness, we need to ensure only
+	// on routine is using that email address at a time before generating a new one.
 	var r sync.Mutex
 	r.Lock()
 	defer r.Unlock()
@@ -109,7 +163,7 @@ func genFakeCustomerData(t *testing.T) customer {
 func createCustomerForTesting(t *testing.T) *customer {
 	t.Helper()
 	db := testConnectToDatabase(t)
-	defer db.Close()
+	defer testCloseDB(t, db)
 
 	createCustomer := genFakeCustomerData(t)
 

@@ -59,7 +59,7 @@ func (m *mockDB) Close() error {
 	return nil
 }
 
-// Result is a mock of sql.Result
+// Result is a mock of sql.Result.
 type Result struct {
 	LastInsertIDOk bool
 }

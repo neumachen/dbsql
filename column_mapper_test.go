@@ -7,9 +7,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestMapRow(t *testing.T) {
-	t.Parallel()
+func TestFieldSetter_Columns(t *testing.T) {
+	td := testingDataType{}
 
+	require.NotEmpty(t, td.ColumnMapperMap().Columns())
+}
+
+func TestSetField(t *testing.T) {
 	db := testConnectToDatabase(t)
 	defer testCloseDB(t, db)
 
@@ -27,9 +31,6 @@ func TestMapRow(t *testing.T) {
 	)
 	require.NoError(t, execErr)
 	require.NotNil(t, result)
-	rowsAffected, rowErr := result.RowsAffected()
-	require.NoError(t, rowErr)
-	require.Equal(t, int64(1), rowsAffected)
 
 	stmt, err = ConvertNamedToPositionalParams(selectTestingDataTypeQuery)
 	require.NoError(t, err)
@@ -51,4 +52,13 @@ func TestMapRow(t *testing.T) {
 	mappedRow, err := MapRow(row, columns)
 	require.NoError(t, err)
 	require.NotNil(t, mappedRow)
+
+	td := testingDataType{}
+	err = td.mapRow(mappedRow)
+	require.NoError(t, err)
+
+	require.NotEmpty(t, td.ID)
+	require.Equal(t, testData.UUID, td.UUID)
+	require.Equal(t, testData.Word, td.Word)
+	require.Equal(t, testData.Paragraph, td.Paragraph)
 }

@@ -15,7 +15,7 @@ type ConvertPositionalParamsTest struct {
 }
 
 func TestConvertPositionalParams(t *testing.T) {
-	ConvertPositionalParamsTests := []ConvertPositionalParamsTest{
+	convertPositionalParamsTests := []ConvertPositionalParamsTest{
 		{
 			Input:                      "SELECT * FROM table WHERE col1 = 1",
 			ExpectedStatement:          "SELECT * FROM table WHERE col1 = 1",
@@ -168,7 +168,7 @@ func TestConvertPositionalParams(t *testing.T) {
 		},
 	}
 
-	for _, convertTest := range ConvertPositionalParamsTests {
+	for _, convertTest := range convertPositionalParamsTests {
 		stmnt, err := ConvertNamedToPositionalParams([]byte(convertTest.Input))
 		require.NoError(t, err)
 		require.Equal(t, convertTest.ExpectedStatement, string(stmnt.GetQueryWithPositionals()), convertTest.Name)
@@ -194,7 +194,7 @@ type TestQueryParameter struct {
 }
 
 func TestSettingParameters(t *testing.T) {
-	QueryVariableTests := []ParameterParsingTest{
+	queryVariableTests := []ParameterParsingTest{
 		{
 			Name:  "Single String Parameter",
 			Query: "SELECT * FROM table WHERE col1 = :foo",
@@ -325,7 +325,7 @@ func TestSettingParameters(t *testing.T) {
 		},
 	}
 
-	for _, variableTest := range QueryVariableTests {
+	for _, variableTest := range queryVariableTests {
 		parameterFuncs := make([]SetParameterFunc, 0)
 		stmt, err := ConvertNamedToPositionalParams([]byte(variableTest.Query))
 		require.NoError(t, err)

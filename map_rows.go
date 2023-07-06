@@ -4,13 +4,6 @@ import (
 	"database/sql"
 )
 
-// MappedRow represents a row of mapped column-value pairs.
-type MappedRow map[string]any
-
-func (m MappedRow) Count() int {
-	return len(m)
-}
-
 // MappedRows represents a collection of mapped rows.
 type MappedRows []MappedRow
 
@@ -50,9 +43,9 @@ func MapRows(rows *sql.Rows) (MappedRows, error) {
 			val := values[i]
 			if b, ok := val.([]byte); ok {
 				// Convert []byte to []byte to prevent underlying array sharing
-				rowMap[col] = append([]byte(nil), b...)
+				rowMap[Column(col)] = append([]byte(nil), b...)
 			} else {
-				rowMap[col] = val
+				rowMap[Column(col)] = val
 			}
 		}
 

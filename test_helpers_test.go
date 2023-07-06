@@ -9,6 +9,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func testCloseDB(t *testing.T, db Database) {
+	if isNilOrZero(db) {
+		err := db.Close()
+		require.NoError(t, err)
+	}
+}
+
 func areEqualJSON(s1, s2 string) (bool, error) {
 	var o1 interface{}
 	var o2 interface{}

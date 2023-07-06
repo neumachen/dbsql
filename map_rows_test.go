@@ -13,7 +13,7 @@ func TestMapRows(t *testing.T) {
 	t.Parallel()
 
 	db := testConnectToDatabase(t)
-	defer db.Close()
+	defer testCloseDB(t, db)
 
 	stmt, err := ConvertNamedToPositionalParams(
 		insertTestingDataTypeQuery,
@@ -72,7 +72,7 @@ func TestMapRows(t *testing.T) {
 		require.Equal(t, data.Paragraph, mappedRow["paragraph"].(string))
 		require.Equal(t, data.CreatedAt, mappedRow["created_at"].(time.Time))
 		mData := json.RawMessage(mappedRow["metadata"].([]byte))
-		isEqual, err := areEqualJSON(string(*data.Metadata), string(mData))
+		isEqual, err := areEqualJSON(string(data.Metadata), string(mData))
 		require.NoError(t, err)
 		require.True(t, isEqual)
 	}

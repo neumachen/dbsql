@@ -67,7 +67,7 @@ func TestExec(t *testing.T) {
 			desc: "insert and delete then affected rows",
 			assertion: func(t *testing.T, desc string) {
 				db := testConnectToDatabase(t)
-				defer db.Close()
+				defer testCloseDB(t, db)
 
 				fake := faker.New()
 				genUUID := uuid.New()
@@ -130,7 +130,7 @@ func TestQuery(t *testing.T) {
 			desc: "create a customer and map rows",
 			assertion: func(t *testing.T, desc string) {
 				db := testConnectToDatabase(t)
-				defer db.Close()
+				defer testCloseDB(t, db)
 
 				fakeCustomer := genFakeCustomerData(t)
 
@@ -163,7 +163,7 @@ func TestQuery(t *testing.T) {
 			desc: "query for record without parameters",
 			assertion: func(t *testing.T, desc string) {
 				db := testConnectToDatabase(t)
-				defer db.Close()
+				defer testCloseDB(t, db)
 
 				statement, err := ConvertNamedToPositionalParams(selectCustomerQuery)
 				require.NoError(t, err, desc)
@@ -184,7 +184,7 @@ func TestQuery(t *testing.T) {
 			desc: "query with parameters",
 			assertion: func(t *testing.T, desc string) {
 				db := testConnectToDatabase(t)
-				defer db.Close()
+				defer testCloseDB(t, db)
 
 				createdCustomer := createCustomerForTesting(t)
 
@@ -233,7 +233,7 @@ func TestQueryRow(t *testing.T) {
 			desc: "create a record and expect result",
 			assertion: func(t *testing.T, desc string) {
 				db := testConnectToDatabase(t)
-				defer db.Close()
+				defer testCloseDB(t, db)
 
 				fakeCustomer := genFakeCustomerData(t)
 
@@ -272,12 +272,12 @@ func TestQueryRow(t *testing.T) {
 			desc: "query record without parameters",
 			assertion: func(t *testing.T, desc string) {
 				db := testConnectToDatabase(t)
-				defer db.Close()
+				defer testCloseDB(t, db)
 
 				statement, err := ConvertNamedToPositionalParams(selectCustomerQuery)
-				require.NoError(t, err)
+				require.NoError(t, err, desc)
 				row, err := statement.QueryRow(db)
-				require.NoError(t, err)
+				require.NoError(t, err, desc)
 				require.NotNil(t, row)
 			},
 		},
@@ -285,7 +285,7 @@ func TestQueryRow(t *testing.T) {
 			desc: "query with parameters",
 			assertion: func(t *testing.T, desc string) {
 				db := testConnectToDatabase(t)
-				defer db.Close()
+				defer testCloseDB(t, db)
 
 				createdCustomer := createCustomerForTesting(t)
 
