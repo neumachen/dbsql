@@ -5,7 +5,7 @@ import (
 )
 
 // MappedRow represents a row of mapped column-value pairs.
-type MappedRow map[string]interface{}
+type MappedRow map[string]any
 
 func (m MappedRow) Count() int {
 	return len(m)
