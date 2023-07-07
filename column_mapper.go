@@ -1,8 +1,6 @@
 package sqlstmt
 
-import (
-	"errors"
-)
+import "fmt"
 
 type (
 	ColumnMapperFunc func(column Column, row MappedRow) error
@@ -63,7 +61,14 @@ func MapColumn[T any](mapFunc func(value T) error) ColumnMapperFunc {
 		}
 		typedValue, ok := value.(T)
 		if !ok {
-			return errors.New("value is not of type T")
+			// return error type assertion failed for the given
+			// value using T.
+			return fmt.Errorf(
+				"column %s has a type of %T and does not match asserted type: %T",
+				column.ToString(),
+				value,
+				*new(T),
+			)
 		}
 
 		return mapFunc(typedValue)
