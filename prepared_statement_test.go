@@ -1,9 +1,6 @@
 package sqldb
 
 import (
-	"database/sql"
-	"net/url"
-	"os"
 	"testing"
 	"time"
 
@@ -12,39 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func deleteRecords(
-	t *testing.T,
-	db SQLExecutor,
-	expectedRowsAffected int,
-	query string,
-	binderFuncs ...BindNamedParameterValueFunc,
-) {
-	stmnt, err := PrepareStatement(query)
-	require.NoError(t, err)
-	result, err := stmnt.Exec(db, binderFuncs...)
-	require.NoError(t, err)
-	require.NotNil(t, result)
-	count, err := result.RowsAffected()
-	require.NoError(t, err)
-	require.Equal(t, int64(expectedRowsAffected), count)
-}
-
-func testPgDBCreds(t *testing.T) *url.URL {
-	v := os.Getenv("")
-	if v == "" {
-		v = "postgres://sqldb:sqldb@localhost:5432/sqldb_dev?sslmode=disable"
-	}
-	u, err := url.Parse(v)
-	require.NoError(t, err)
-	return u
-}
-
-func testConnectToDatabase(t *testing.T) SQLExecutor {
-	sqlDatabase, err := sql.Open("postgres", testPgDBCreds(t).String())
-	require.NoError(t, err)
-	return sqlDatabase
-}
-
 func TestExec(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -52,7 +16,7 @@ func TestExec(t *testing.T) {
 		assertion func(*testing.T, string)
 	}{
 		{
-			name: "prepare returned an error",
+			name: "PrepareStatement returns an error when the Prepare operation fails",
 			assertion: func(t *testing.T, desc string) {
 				statement, err := PrepareStatement(insertTestingDataTypeQuery)
 				require.NoError(t, err, desc)
@@ -64,7 +28,7 @@ func TestExec(t *testing.T) {
 			},
 		},
 		{
-			name: "insert and delete then affected rows",
+			name: "Insert and delete records with the expected affected rows",
 			assertion: func(t *testing.T, desc string) {
 				db := testConnectToDatabase(t)
 				defer testCloseDB(t, db)
@@ -119,7 +83,7 @@ func TestQuery(t *testing.T) {
 		assertion func(*testing.T, string)
 	}{
 		{
-			desc: "prepare returned an error",
+			desc: "PrepareStatement returns an error when the Prepare operation fails",
 			assertion: func(t *testing.T, desc string) {
 				statement, err := PrepareStatement(createCustomerQuery)
 				require.NoError(t, err, "failed to convert to positional params")
@@ -129,7 +93,7 @@ func TestQuery(t *testing.T) {
 			},
 		},
 		{
-			desc: "create a customer and map rows",
+			desc: "Create a customer and map the returned rows",
 			assertion: func(t *testing.T, desc string) {
 				db := testConnectToDatabase(t)
 				defer testCloseDB(t, db)
@@ -162,7 +126,7 @@ func TestQuery(t *testing.T) {
 			},
 		},
 		{
-			desc: "query for record without parameters",
+			desc: "Query for records without any parameters",
 			assertion: func(t *testing.T, desc string) {
 				db := testConnectToDatabase(t)
 				defer testCloseDB(t, db)
@@ -172,18 +136,24 @@ func TestQuery(t *testing.T) {
 				rows, err := statement.Query(db, nil)
 				require.NoError(t, err, desc)
 				require.NotNil(t, rows)
-				// NOTE: assert the returned values with more certainty.
-				// right now, we are only checking if values are returned
-				// by ensuring that there is a record being returned despite
-				// the query executed without parameters.
+
+				// Assert that the returned rows contain the expected data
 				mappedRows, err := MapRows(rows)
 				require.NoError(t, err, desc)
 				require.NotNil(t, mappedRows)
-				require.NotEmpty(t, mappedRows)
+				require.Greater(t, len(mappedRows), 0, "expected at least one customer record to be returned")
+
+				// Assert the specific values in the first returned row
+				firstRow := mappedRows[0]
+				require.NotEmpty(t, firstRow["customer_id"], "customer_id should not be empty")
+				require.NotEmpty(t, firstRow["last_name"], "last_name should not be empty")
+				require.NotEmpty(t, firstRow["first_name"], "first_name should not be empty")
+				require.NotEmpty(t, firstRow["contact_info"], "contact_info should not be empty")
+				require.NotEmpty(t, firstRow["address"], "address should not be empty")
 			},
 		},
 		{
-			desc: "query with parameters",
+			desc: "Query for records with parameters",
 			assertion: func(t *testing.T, desc string) {
 				db := testConnectToDatabase(t)
 				defer testCloseDB(t, db)
@@ -224,7 +194,7 @@ func TestQueryRow(t *testing.T) {
 		assertion func(*testing.T, string)
 	}{
 		{
-			desc: "prepare returned an error",
+			desc: "PrepareStatement returns an error when the Prepare operation fails",
 			assertion: func(t *testing.T, desc string) {
 				statement, err := PrepareStatement(createCustomerQuery)
 				require.NoError(t, err, "failed to convert to positional params")
@@ -234,7 +204,7 @@ func TestQueryRow(t *testing.T) {
 			},
 		},
 		{
-			desc: "create a record and expect result",
+			desc: "Create a record and expect the result",
 			assertion: func(t *testing.T, desc string) {
 				db := testConnectToDatabase(t)
 				defer testCloseDB(t, db)
@@ -273,7 +243,7 @@ func TestQueryRow(t *testing.T) {
 			},
 		},
 		{
-			desc: "query record without parameters",
+			desc: "Query a record without any parameters",
 			assertion: func(t *testing.T, desc string) {
 				db := testConnectToDatabase(t)
 				defer testCloseDB(t, db)
@@ -286,7 +256,7 @@ func TestQueryRow(t *testing.T) {
 			},
 		},
 		{
-			desc: "query with parameters",
+			desc: "Query a record with parameters",
 			assertion: func(t *testing.T, desc string) {
 				db := testConnectToDatabase(t)
 				defer testCloseDB(t, db)
