@@ -15,14 +15,41 @@ const (
 	placeholderPrefix = "$"
 )
 
+// PrepareStatement takes an unprepared SQL statement and returns a PreparedStatement interface.
+// The PreparedStatement interface provides methods for managing named parameters, binding parameter
+// values, and executing the prepared statement.
+//
+// The PrepareStatement function does the following:
+//
+// 1. Replaces named parameters (indicated by a '@' prefix) with positional placeholders ($1, $2, etc.).
+// 2. Stores the positions of the named parameters in a NamedParameterPositions struct.
+// 3. Returns a preparedStatement struct that implements the PreparedStatement interface.
+//
+// Example usage:
+//
+//	stmt, err := PrepareStatement("SELECT * FROM users WHERE name = @name AND age > @age")
+//	if err != nil {
+//		// handle error
+//	}
+//
+//	rows, err := stmt.Query(db,
+//		BindNamedParameterValue("name", "John"),
+//		BindNamedParameterValue("age", 30),
+//	)
+//	if err != nil {
+//		// handle error
+//	}
+//	defer rows.Close()
+//
+//	for rows.Next() {
+//		// process rows
+//	}
 func PrepareStatement(unpreparedStatement string) (PreparedStatement, error) {
 	var revisedStatement []byte
 	var namedParameter []byte
 	unpreparedStatementByte := []byte(unpreparedStatement)
 
-	statementPrepare := preparedStatement{
-		originalStatement: unpreparedStatement,
-	}
+	namedParamPositions := &NamedParameterPositions{}
 
 	runeCount := utf8.RuneCount(unpreparedStatementByte)
 
@@ -30,12 +57,13 @@ func PrepareStatement(unpreparedStatement string) (PreparedStatement, error) {
 	var size int
 	var positionIndex int
 
+	// Iterate through the unprepared statement, replacing named parameters with positional placeholders
 	for i := 0; i < runeCount; {
 		character, size = utf8.DecodeRune(unpreparedStatementByte[i:])
 		i += size
 
 		if character == parameterPrefix {
-			// Collect the characters after the parameter prefix until a non-content rune is encountered.
+			// Collect the characters after the parameter prefix until a non-content rune is encountered
 			for {
 				character, size = utf8.DecodeRune(unpreparedStatementByte[i:])
 				i += size
@@ -47,10 +75,11 @@ func PrepareStatement(unpreparedStatement string) (PreparedStatement, error) {
 				namedParameter = append(namedParameter, string(character)...)
 			}
 
-			statementPrepare.setNamedParameterPosition(string(namedParameter), positionIndex)
+			// Set the position of the named parameter in the NamedParameterPositions struct
+			namedParamPositions.insert(string(namedParameter), positionIndex)
 			positionIndex++
 
-			// Replace the named parameter with a positional parameter placeholder.
+			// Replace the named parameter with a positional parameter placeholder
 			placeholder := strconv.Itoa(positionIndex)
 			revisedStatement = append(revisedStatement, placeholderPrefix...)
 			revisedStatement = append(revisedStatement, placeholder...)
@@ -62,12 +91,12 @@ func PrepareStatement(unpreparedStatement string) (PreparedStatement, error) {
 			}
 		}
 
-		// Append the character to the revised query.
+		// Append the character to the revised query
 		revisedStatement = append(revisedStatement, byte(character))
 
-		// If it's a quote, continue appending to the builder but do not search for parameters.
+		// If it's a quote, continue appending to the builder but do not search for parameters
 		if character == parameterEscape {
-			// Append characters until the closing quote is encountered.
+			// Append characters until the closing quote is encountered
 			for {
 				character, size = utf8.DecodeRune(unpreparedStatementByte[i:])
 				i += size
@@ -80,9 +109,10 @@ func PrepareStatement(unpreparedStatement string) (PreparedStatement, error) {
 		}
 	}
 
+	// Return a new preparedStatement struct with the revised statement, named parameter positions, and other information
 	return &preparedStatement{
 		originalStatement:     unpreparedStatement,
-		namedParamPositions:   statementPrepare.namedParamPositions,
+		namedParamPositions:   namedParamPositions,
 		revisedStatement:      string(revisedStatement),
 		boundNamedParamValues: make(BoundNamedParameterValues, positionIndex),
 	}, nil
