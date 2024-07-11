@@ -1,7 +1,6 @@
-package sqlstmt
+package sqldb
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/lib/pq"
@@ -20,10 +19,6 @@ func TestMapColumn(t *testing.T) {
 	preparedStatement, err := PrepareStatement(
 		insertTestingDataTypeQuery,
 	)
-	fmt.Println("=======================")
-	fmt.Println(preparedStatement.Revised())
-	fmt.Println(preparedStatement.NamedParameterPositions())
-	fmt.Println("=======================")
 	require.NoError(t, err)
 	require.NotNil(t, preparedStatement)
 

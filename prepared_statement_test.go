@@ -1,4 +1,4 @@
-package sqlstmt
+package sqldb
 
 import (
 	"database/sql"
@@ -32,7 +32,7 @@ func deleteRecords(
 func testPgDBCreds(t *testing.T) *url.URL {
 	v := os.Getenv("")
 	if v == "" {
-		v = "postgres://sqlstmt:sqlstmt@localhost:5432/sqlstmt_dev?sslmode=disable"
+		v = "postgres://sqldb:sqldb@localhost:5432/sqldb_dev?sslmode=disable"
 	}
 	u, err := url.Parse(v)
 	require.NoError(t, err)

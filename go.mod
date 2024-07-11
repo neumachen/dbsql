@@ -1,4 +1,4 @@
-module github.com/neumachen/sqlstmt
+module github.com/neumachen/sqldb
 
 go 1.20
 

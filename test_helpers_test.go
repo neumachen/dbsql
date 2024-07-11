@@ -1,4 +1,4 @@
-package sqlstmt
+package sqldb
 
 import (
 	"encoding/json"
@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/neumachen/sqlstmt/internal"
+	"github.com/neumachen/sqldb/internal"
 	"github.com/stretchr/testify/require"
 )
 

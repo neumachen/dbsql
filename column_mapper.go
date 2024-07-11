@@ -1,9 +1,9 @@
-package sqlstmt
+package sqldb
 
 import (
 	"fmt"
 
-	"github.com/neumachen/sqlstmt/internal"
+	"github.com/neumachen/sqldb/internal"
 )
 
 type (

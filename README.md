@@ -19,7 +19,7 @@ SQLStmt is a Go package that simplifies working with SQL statements containing n
 To use SQLStmt in your Go project, you need to have Go installed and set up. Then, you can use the following command to install the package:
 
 ```shell
-go get github.com/neumachen/sqlstmt@latest
+go get github.com/neumachen/sqldb@latest
 ```
 
 ## NOTES
