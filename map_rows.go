@@ -7,12 +7,12 @@ import (
 // MappedRows represents a collection of mapped rows.
 type MappedRows []MappedRow
 
-// Count ...
+// Count returns the number of rows in the MappedRows.
 func (m MappedRows) Count() int {
 	return len(m)
 }
 
-// MapRows maps each column and value of the given sql.Rows to a MappedRows structure.
+// MapRows maps the columns and values of the given sql.Rows to a MappedRows.
 func MapRows(rows *sql.Rows) (MappedRows, error) {
 	columns, err := rows.Columns()
 	if err != nil {
@@ -20,8 +20,8 @@ func MapRows(rows *sql.Rows) (MappedRows, error) {
 	}
 
 	count := len(columns)
-	values := make([]interface{}, count)
-	valuePtrs := make([]interface{}, count)
+	values := make([]any, count)
+	valuePtrs := make([]any, count)
 
 	result := make(MappedRows, 0) // Initialize an empty result
 

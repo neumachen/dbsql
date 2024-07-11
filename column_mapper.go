@@ -6,24 +6,23 @@ import (
 	"github.com/neumachen/sqldb/internal"
 )
 
-type (
-	ColumnMapperFunc func(column Column, row MappedRow) error
+// Column is a string type representing a column name.
+type Column string
 
-	ColumnMapperMap map[Column]ColumnMapperFunc
-
-	Column string
-
-	Columns []Column
-)
-
+// ToString returns the Column as a string.
 func (c Column) ToString() string {
 	return string(c)
 }
 
+// Columns is a slice of Column values.
+type Columns []Column
+
+// Count returns the number of columns.
 func (c Columns) Count() int {
 	return len(c)
 }
 
+// HasColumn checks if the Columns slice contains the given column.
 func (c Columns) HasColumn(column string) bool {
 	for i := range c {
 		if c[i].ToString() == column {
@@ -33,7 +32,7 @@ func (c Columns) HasColumn(column string) bool {
 	return false
 }
 
-// Columns returns a slice of strings representing the columns (field names) in the ColumnMappers map.
+// Columns returns a slice of strings representing the columns (field names) in the ColumnMapperMap.
 // The order of the columns is determined by the order in which they were added to the map.
 func (c ColumnMapperMap) Columns() Columns {
 	count := len(c)
@@ -48,9 +47,15 @@ func (c ColumnMapperMap) Columns() Columns {
 	return columns
 }
 
+// ColumnMapperFunc is a function that maps a column value to a field in a struct.
+type ColumnMapperFunc func(column Column, row MappedRow) error
+
+// ColumnMapperMap is a map of Column to ColumnMapperFunc, used to map row data to a struct.
+type ColumnMapperMap map[Column]ColumnMapperFunc
+
 // ColumnMapper is a generic type that represents a function responsible for setting a column value.
 type ColumnMapper[T any] struct {
-	// MapperFunc function takes a value of type T and returns an error, if any.
+	// MapperFunc is a function that takes a value of type T and returns an error, if any.
 	MapperFunc func(value T) error
 }
 
