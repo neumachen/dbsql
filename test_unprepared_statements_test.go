@@ -1,6 +1,6 @@
 package sqlstmt
 
-var insertTestingDataTypeQuery = []byte(`
+const insertTestingDataTypeQuery = `
 	INSERT INTO testing_datatypes (
 		testing_datatype_uuid,
 		word,
@@ -8,21 +8,21 @@ var insertTestingDataTypeQuery = []byte(`
 		metadata,
 		created_at
 	) VALUES (
-		:uuid,
-		:word,
-		:paragraph,
-		:metadata,
-		:created_at
+		@uuid,
+		@word,
+		@paragraph,
+		@metadata,
+		@created_at
 	)
-`)
+`
 
-var deleteTestingDataTypeQuery = []byte(`
+const deleteTestingDataTypeQuery = `
 	DELETE FROM testing_datatypes td
-	WHERE (nullif(:uuid, NULL) IS NULL OR td.testing_datatype_uuid = :uuid)
-	AND (nullif(:uuids, '{}') IS NULL OR td.testing_datatype_uuid = ANY(:uuids))
-`)
+	WHERE (nullif(@uuid, NULL) IS NULL OR td.testing_datatype_uuid = @uuid)
+	AND (nullif(@uuids, '{}') IS NULL OR td.testing_datatype_uuid = ANY(@uuids))
+`
 
-var selectTestingDataTypeQuery = []byte(`
+const selectTestingDataTypeQuery = `
 	SELECT
 		td.testing_datatype_id,
 		td.testing_datatype_uuid,
@@ -31,14 +31,14 @@ var selectTestingDataTypeQuery = []byte(`
 		td.metadata,
 		td.created_at
 	FROM testing_datatypes td
-	WHERE (nullif(:id, NULL) IS NULL OR td.testing_datatype_id = :id)
-	AND (nullif(:ids, '{}') IS NULL OR td.testing_datatype_id = ANY(:ids))
-	AND (nullif(:uuid, NULL) IS NULL OR td.testing_datatype_uuid = :uuid)
-	AND (nullif(:uuids, '{}') IS NULL OR td.testing_datatype_uuid = ANY(:uuids))
+	WHERE (nullif(@id, NULL) IS NULL OR td.testing_datatype_id = @id)
+	AND (nullif(@ids, '{}') IS NULL OR td.testing_datatype_id = ANY(@ids))
+	AND (nullif(@uuid, NULL) IS NULL OR td.testing_datatype_uuid = @uuid)
+	AND (nullif(@uuids, '{}') IS NULL OR td.testing_datatype_uuid = ANY(@uuids))
 	ORDER BY td.created_at
-`)
+`
 
-var createCustomerQuery = []byte(`
+const createCustomerQuery = `
 	SELECT
 		c.customer_id,
 		c.last_name,
@@ -46,25 +46,25 @@ var createCustomerQuery = []byte(`
 		c.contact_info,
 		c.address
 	FROM create_customer(
-		:last_name,
-		:first_name,
-		:contact_info,
-		:address
+		@last_name,
+		@first_name,
+		@contact_info,
+		@address
 	) c
-`)
+`
 
-var deleteCustomerQuery = []byte(`
+const deleteCustomerQuery = `
 	DELETE FROM customers c
 	WHERE c.customer_id = (
 		SELECT _ea.customer_id
 	    FROM email_addresses _ea
-	    WHERE _ea.customer_id = :customer_id
-	    AND _ea.email_address = :email_address
+	    WHERE _ea.customer_id = @customer_id
+	    AND _ea.email_address = @email_address
 	)
 	RETURNING customer_id;
-`)
+`
 
-var selectCustomerQuery = []byte(`
+const selectCustomerQuery = `
   SELECT
       c.customer_id,
       c.last_name,
@@ -80,8 +80,8 @@ var selectCustomerQuery = []byte(`
             'email_address', _ea.email_address
         ) AS contact_info
       FROM email_addresses _ea
-	  WHERE (NULLIF(:customer_id, NULL) IS NULL OR _ea.customer_id = :customer_id)
-	  AND (NULLIF(:email_address, NULL) IS NULL OR _ea.email_address = :email_address)
+	  WHERE (NULLIF(@customer_id, NULL) IS NULL OR _ea.customer_id = @customer_id)
+	  AND (NULLIF(@email_address, NULL) IS NULL OR _ea.email_address = @email_address)
   ) ea USING (customer_id)
   JOIN (
       SELECT
@@ -101,7 +101,7 @@ var selectCustomerQuery = []byte(`
           ) AS address
       FROM customer_addresses _ca
       JOIN addresses _a using (address_id)
-	  WHERE (NULLIF(:customer_id, NULL) IS NULL OR _ca.customer_id = :customer_id)
-	  AND (NULLIF(:address_id, NULL) IS NULL OR _ca.address_id = :address_id)
+	  WHERE (NULLIF(@customer_id, NULL) IS NULL OR _ca.customer_id = @customer_id)
+	  AND (NULLIF(@address_id, NULL) IS NULL OR _ca.address_id = @address_id)
   ) a USING (customer_id);
-`)
+`

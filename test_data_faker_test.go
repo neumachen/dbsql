@@ -70,13 +70,13 @@ func (t *testingDataType) mapRow(row MappedRow) error {
 	return nil
 }
 
-func (t testingDataType) asParameters() []SetParameterFunc {
-	return []SetParameterFunc{
-		SetParameter("uuid", t.UUID),
-		SetParameter("word", t.Word),
-		SetParameter("paragraph", t.Paragraph),
-		SetParameter("metadata", t.Metadata),
-		SetParameter("created_at", t.CreatedAt),
+func (t testingDataType) asParameters() []BindNamedParameterValueFunc {
+	return []BindNamedParameterValueFunc{
+		BindNamedParameterValue("uuid", t.UUID),
+		BindNamedParameterValue("word", t.Word),
+		BindNamedParameterValue("paragraph", t.Paragraph),
+		BindNamedParameterValue("metadata", t.Metadata),
+		BindNamedParameterValue("created_at", t.CreatedAt),
 	}
 }
 
@@ -84,7 +84,7 @@ func genFakeTestingDataType(t *testing.T) *testingDataType {
 	genUUID := uuid.New()
 	fake := faker.New()
 
-	mapData := map[string]interface{}{
+	mapData := map[string]any{
 		fake.Lorem().Text(1): fake.Lorem().Text(1),
 	}
 
@@ -119,16 +119,16 @@ type customer struct {
 	Address     *address     `json:"address,omitempty"`
 }
 
-func (c customer) asParameters(t *testing.T) []SetParameterFunc {
+func (c customer) asParameters(t *testing.T) []BindNamedParameterValueFunc {
 	contactInfo, err := json.Marshal(c.ContactInfo)
 	require.NoError(t, err)
 	address, err := json.Marshal(c.Address)
 	require.NoError(t, err)
-	return []SetParameterFunc{
-		SetParameter("last_name", c.LastName),
-		SetParameter("first_name", c.FirstName),
-		SetParameter("contact_info", contactInfo),
-		SetParameter("address", address),
+	return []BindNamedParameterValueFunc{
+		BindNamedParameterValue("last_name", c.LastName),
+		BindNamedParameterValue("first_name", c.FirstName),
+		BindNamedParameterValue("contact_info", contactInfo),
+		BindNamedParameterValue("address", address),
 	}
 }
 
@@ -167,10 +167,10 @@ func createCustomerForTesting(t *testing.T) *customer {
 
 	createCustomer := genFakeCustomerData(t)
 
-	statement, err := ConvertNamedToPositionalParams(createCustomerQuery)
+	preparedStatement, err := PrepareStatement(createCustomerQuery)
 	require.NoError(t, err, "failed to convert to positional params")
 
-	rows, err := statement.Query(db, createCustomer.asParameters(t)...)
+	rows, err := preparedStatement.Query(db, createCustomer.asParameters(t)...)
 	require.NoError(t, err, "failed to query creating customer")
 	require.NotNil(t, rows)
 	mappedRows, err := MapRows(rows)

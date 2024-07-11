@@ -14,14 +14,14 @@ import (
 
 func deleteRecords(
 	t *testing.T,
-	db Database,
+	db SQLExecutor,
 	expectedRowsAffected int,
-	query []byte,
-	setterFuncs ...SetParameterFunc,
+	query string,
+	binderFuncs ...BindNamedParameterValueFunc,
 ) {
-	stmnt, err := ConvertNamedToPositionalParams(query)
+	stmnt, err := PrepareStatement(query)
 	require.NoError(t, err)
-	result, err := stmnt.Exec(db, setterFuncs...)
+	result, err := stmnt.Exec(db, binderFuncs...)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	count, err := result.RowsAffected()
@@ -30,7 +30,7 @@ func deleteRecords(
 }
 
 func testPgDBCreds(t *testing.T) *url.URL {
-	v := os.Getenv("MAPSQL_DB")
+	v := os.Getenv("")
 	if v == "" {
 		v = "postgres://sqlstmt:sqlstmt@localhost:5432/sqlstmt_dev?sslmode=disable"
 	}
@@ -39,7 +39,7 @@ func testPgDBCreds(t *testing.T) *url.URL {
 	return u
 }
 
-func testConnectToDatabase(t *testing.T) Database {
+func testConnectToDatabase(t *testing.T) SQLExecutor {
 	sqlDatabase, err := sql.Open("postgres", testPgDBCreds(t).String())
 	require.NoError(t, err)
 	return sqlDatabase
@@ -48,13 +48,13 @@ func testConnectToDatabase(t *testing.T) Database {
 func TestExec(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		desc      string
+		name      string
 		assertion func(*testing.T, string)
 	}{
 		{
-			desc: "db.Prepare returned an error",
+			name: "prepare returned an error",
 			assertion: func(t *testing.T, desc string) {
-				statement, err := ConvertNamedToPositionalParams(insertTestingDataTypeQuery)
+				statement, err := PrepareStatement(insertTestingDataTypeQuery)
 				require.NoError(t, err, desc)
 				result, err := statement.Exec(&mockDB{
 					PrepareOk: false,
@@ -64,7 +64,7 @@ func TestExec(t *testing.T) {
 			},
 		},
 		{
-			desc: "insert and delete then affected rows",
+			name: "insert and delete then affected rows",
 			assertion: func(t *testing.T, desc string) {
 				db := testConnectToDatabase(t)
 				defer testCloseDB(t, db)
@@ -72,15 +72,15 @@ func TestExec(t *testing.T) {
 				fake := faker.New()
 				genUUID := uuid.New()
 
-				setters := []SetParameterFunc{
-					SetParameter("uuid", genUUID.String()),
-					SetParameter("word", fake.Lorem().Text(10)),
-					SetParameter("paragraph", fake.Lorem().Text(1000)),
-					SetParameter("metadata", []byte(`{"test": "foo"}`)),
-					SetParameter("created_at", time.Now().UTC()),
+				setters := []BindNamedParameterValueFunc{
+					BindNamedParameterValue("uuid", genUUID.String()),
+					BindNamedParameterValue("word", fake.Lorem().Text(10)),
+					BindNamedParameterValue("paragraph", fake.Lorem().Text(1000)),
+					BindNamedParameterValue("metadata", []byte(`{"test": "foo"}`)),
+					BindNamedParameterValue("created_at", time.Now().UTC()),
 				}
 
-				statement, err := ConvertNamedToPositionalParams(insertTestingDataTypeQuery)
+				statement, err := PrepareStatement(insertTestingDataTypeQuery)
 				require.NoError(t, err, desc)
 
 				result, err := statement.Exec(db, setters...)
@@ -89,11 +89,11 @@ func TestExec(t *testing.T) {
 				require.NoError(t, err, desc)
 				require.Equal(t, int64(1), affectedRows)
 
-				statement, err = ConvertNamedToPositionalParams(deleteTestingDataTypeQuery)
+				statement, err = PrepareStatement(deleteTestingDataTypeQuery)
 				require.NoError(t, err, desc)
 				result, err = statement.Exec(
 					db,
-					SetParameter("uuid", genUUID.String()),
+					BindNamedParameterValue("uuid", genUUID.String()),
 				)
 				require.NoError(t, err, desc)
 				require.NotNil(t, result, desc)
@@ -105,7 +105,9 @@ func TestExec(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		test.assertion(t, test.desc)
+		t.Run(test.name, func(t *testing.T) {
+			test.assertion(t, test.name)
+		})
 	}
 }
 
@@ -117,9 +119,9 @@ func TestQuery(t *testing.T) {
 		assertion func(*testing.T, string)
 	}{
 		{
-			desc: "db.Prepare returned an error",
+			desc: "prepare returned an error",
 			assertion: func(t *testing.T, desc string) {
-				statement, err := ConvertNamedToPositionalParams(createCustomerQuery)
+				statement, err := PrepareStatement(createCustomerQuery)
 				require.NoError(t, err, "failed to convert to positional params")
 				rows, err := statement.Query(&mockDB{PrepareOk: false}, nil)
 				require.Error(t, err, desc)
@@ -134,7 +136,7 @@ func TestQuery(t *testing.T) {
 
 				fakeCustomer := genFakeCustomerData(t)
 
-				statement, err := ConvertNamedToPositionalParams(createCustomerQuery)
+				statement, err := PrepareStatement(createCustomerQuery)
 				require.NoError(t, err, "failed to convert to positional params")
 
 				rows, err := statement.Query(db, fakeCustomer.asParameters(t)...)
@@ -154,8 +156,8 @@ func TestQuery(t *testing.T) {
 					db,
 					1,
 					deleteCustomerQuery,
-					SetParameter("customer_id", customerID),
-					SetParameter("email_address", fakeCustomer.ContactInfo.EmailAddress),
+					BindNamedParameterValue("customer_id", customerID),
+					BindNamedParameterValue("email_address", fakeCustomer.ContactInfo.EmailAddress),
 				)
 			},
 		},
@@ -165,7 +167,7 @@ func TestQuery(t *testing.T) {
 				db := testConnectToDatabase(t)
 				defer testCloseDB(t, db)
 
-				statement, err := ConvertNamedToPositionalParams(selectCustomerQuery)
+				statement, err := PrepareStatement(selectCustomerQuery)
 				require.NoError(t, err, desc)
 				rows, err := statement.Query(db, nil)
 				require.NoError(t, err, desc)
@@ -188,12 +190,12 @@ func TestQuery(t *testing.T) {
 
 				createdCustomer := createCustomerForTesting(t)
 
-				statement, err := ConvertNamedToPositionalParams(selectCustomerQuery)
+				statement, err := PrepareStatement(selectCustomerQuery)
 				require.NoError(t, err, desc)
 				rows, err := statement.Query(
 					db,
-					SetParameter("customer_id", createdCustomer.CustomerID),
-					SetParameter("email_address", createdCustomer.ContactInfo.EmailAddress),
+					BindNamedParameterValue("customer_id", createdCustomer.CustomerID),
+					BindNamedParameterValue("email_address", createdCustomer.ContactInfo.EmailAddress),
 				)
 				require.NoError(t, err, desc)
 				require.NotNil(t, rows)
@@ -208,7 +210,9 @@ func TestQuery(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		test.assertion(t, test.desc)
+		t.Run(test.desc, func(t *testing.T) {
+			test.assertion(t, test.desc)
+		})
 	}
 }
 
@@ -220,9 +224,9 @@ func TestQueryRow(t *testing.T) {
 		assertion func(*testing.T, string)
 	}{
 		{
-			desc: "db.Prepare returned an error",
+			desc: "prepare returned an error",
 			assertion: func(t *testing.T, desc string) {
-				statement, err := ConvertNamedToPositionalParams(createCustomerQuery)
+				statement, err := PrepareStatement(createCustomerQuery)
 				require.NoError(t, err, "failed to convert to positional params")
 				row, err := statement.QueryRow(&mockDB{PrepareOk: false}, nil)
 				require.Error(t, err, desc)
@@ -237,7 +241,7 @@ func TestQueryRow(t *testing.T) {
 
 				fakeCustomer := genFakeCustomerData(t)
 
-				statement, err := ConvertNamedToPositionalParams(createCustomerQuery)
+				statement, err := PrepareStatement(createCustomerQuery)
 				require.NoError(t, err, "failed to convert to positional params")
 
 				row, err := statement.QueryRow(db, fakeCustomer.asParameters(t)...)
@@ -263,8 +267,8 @@ func TestQueryRow(t *testing.T) {
 					db,
 					1,
 					deleteCustomerQuery,
-					SetParameter("customer_id", mappedRow["customer_id"].(int64)),
-					SetParameter("email_address", fakeCustomer.ContactInfo.EmailAddress),
+					BindNamedParameterValue("customer_id", mappedRow["customer_id"].(int64)),
+					BindNamedParameterValue("email_address", fakeCustomer.ContactInfo.EmailAddress),
 				)
 			},
 		},
@@ -274,7 +278,7 @@ func TestQueryRow(t *testing.T) {
 				db := testConnectToDatabase(t)
 				defer testCloseDB(t, db)
 
-				statement, err := ConvertNamedToPositionalParams(selectCustomerQuery)
+				statement, err := PrepareStatement(selectCustomerQuery)
 				require.NoError(t, err, desc)
 				row, err := statement.QueryRow(db)
 				require.NoError(t, err, desc)
@@ -289,12 +293,12 @@ func TestQueryRow(t *testing.T) {
 
 				createdCustomer := createCustomerForTesting(t)
 
-				statement, err := ConvertNamedToPositionalParams(selectCustomerQuery)
+				statement, err := PrepareStatement(selectCustomerQuery)
 				require.NoError(t, err, desc)
 				row, err := statement.QueryRow(
 					db,
-					SetParameter("customer_id", createdCustomer.CustomerID),
-					SetParameter("email_address", createdCustomer.ContactInfo.EmailAddress),
+					BindNamedParameterValue("customer_id", createdCustomer.CustomerID),
+					BindNamedParameterValue("email_address", createdCustomer.ContactInfo.EmailAddress),
 				)
 				require.NoError(t, err, desc)
 				require.NotNil(t, row)
@@ -314,6 +318,8 @@ func TestQueryRow(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		test.assertion(t, test.desc)
+		t.Run(test.desc, func(t *testing.T) {
+			test.assertion(t, test.desc)
+		})
 	}
 }

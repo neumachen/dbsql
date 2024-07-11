@@ -13,7 +13,7 @@ func TestMapRow(t *testing.T) {
 	db := testConnectToDatabase(t)
 	defer testCloseDB(t, db)
 
-	stmt, err := ConvertNamedToPositionalParams(
+	stmt, err := PrepareStatement(
 		insertTestingDataTypeQuery,
 	)
 	require.NoError(t, err)
@@ -31,12 +31,12 @@ func TestMapRow(t *testing.T) {
 	require.NoError(t, rowErr)
 	require.Equal(t, int64(1), rowsAffected)
 
-	stmt, err = ConvertNamedToPositionalParams(selectTestingDataTypeQuery)
+	stmt, err = PrepareStatement(selectTestingDataTypeQuery)
 	require.NoError(t, err)
 	require.NotNil(t, stmt)
 
 	row, err := stmt.QueryRow(db,
-		SetParameter("uuids", pq.Array([]string{testData.UUID})),
+		BindNamedParameterValue("uuids", pq.Array([]string{testData.UUID})),
 	)
 	require.NoError(t, err)
 	require.NotNil(t, row)

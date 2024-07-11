@@ -1,6 +1,10 @@
 package sqlstmt
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/neumachen/sqlstmt/internal"
+)
 
 type (
 	ColumnMapperFunc func(column Column, row MappedRow) error
@@ -56,7 +60,7 @@ type ColumnMapper[T any] struct {
 func MapColumn[T any](mapFunc func(value T) error) ColumnMapperFunc {
 	return func(column Column, row MappedRow) error {
 		value, ok := row[column]
-		if isNilOrZero(value) || !ok {
+		if internal.IsNilOrZeroValue(value) || !ok {
 			return nil
 		}
 		typedValue, ok := value.(T)

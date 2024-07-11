@@ -6,11 +6,12 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/neumachen/sqlstmt/internal"
 	"github.com/stretchr/testify/require"
 )
 
-func testCloseDB(t *testing.T, db Database) {
-	if isNilOrZero(db) {
+func testCloseDB(t *testing.T, db SQLExecutor) {
+	if internal.IsNilOrZeroValue(db) {
 		err := db.Close()
 		require.NoError(t, err)
 	}

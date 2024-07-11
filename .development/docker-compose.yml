@@ -1,6 +1,6 @@
-version: "3.9"
 volumes:
   postgres: {}
+
 services:
   postgres:
     image: postgis/postgis:15-3.3-alpine
@@ -12,6 +12,7 @@ services:
       - 5432:5432
     volumes:
       - postgres:/var/lib/postgresql/data
+      
   migrate:
     depends_on:
       - postgres

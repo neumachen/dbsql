@@ -1,6 +1,7 @@
 package sqlstmt
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/lib/pq"
@@ -16,15 +17,19 @@ func TestMapColumn(t *testing.T) {
 	db := testConnectToDatabase(t)
 	defer testCloseDB(t, db)
 
-	stmt, err := ConvertNamedToPositionalParams(
+	preparedStatement, err := PrepareStatement(
 		insertTestingDataTypeQuery,
 	)
+	fmt.Println("=======================")
+	fmt.Println(preparedStatement.Revised())
+	fmt.Println(preparedStatement.NamedParameterPositions())
+	fmt.Println("=======================")
 	require.NoError(t, err)
-	require.NotNil(t, stmt)
+	require.NotNil(t, preparedStatement)
 
 	testData := genFakeTestingDataType(t)
 
-	result, execErr := stmt.Exec(
+	result, execErr := preparedStatement.Exec(
 		db,
 		testData.asParameters()...,
 	)
@@ -32,12 +37,12 @@ func TestMapColumn(t *testing.T) {
 	require.NotNil(t, result)
 
 	t.Run("valid types", func(t *testing.T) {
-		stmt, err = ConvertNamedToPositionalParams(selectTestingDataTypeQuery)
+		preparedStatement, err = PrepareStatement(selectTestingDataTypeQuery)
 		require.NoError(t, err)
-		require.NotNil(t, stmt)
+		require.NotNil(t, preparedStatement)
 
-		row, err := stmt.QueryRow(db,
-			SetParameter("uuids", pq.Array([]string{testData.UUID})),
+		row, err := preparedStatement.QueryRow(db,
+			BindNamedParameterValue("uuids", pq.Array([]string{testData.UUID})),
 		)
 		require.NoError(t, err)
 		require.NotNil(t, row)
@@ -64,7 +69,7 @@ func TestMapColumn(t *testing.T) {
 	})
 
 	t.Run("invalid type", func(t *testing.T) {
-		invalidDataType := []byte(`
+		invalidDataType := `
 			SELECT
 				CAST(td.testing_datatype_id AS VARCHAR) AS test_data_type_id,
 				td.testing_datatype_uuid,
@@ -73,19 +78,19 @@ func TestMapColumn(t *testing.T) {
 				td.metadata,
 				td.created_at
 			FROM testing_datatypes td
-			WHERE (nullif(:id, NULL) IS NULL OR td.testing_datatype_id = :id)
-			AND (nullif(:ids, '{}') IS NULL OR td.testing_datatype_id = ANY(:ids))
-			AND (nullif(:uuid, NULL) IS NULL OR td.testing_datatype_uuid = :uuid)
-			AND (nullif(:uuids, '{}') IS NULL OR td.testing_datatype_uuid = ANY(:uuids))
+			WHERE (nullif(@id, NULL) IS NULL OR td.testing_datatype_id = @id)
+			AND (nullif(@ids, '{}') IS NULL OR td.testing_datatype_id = ANY(@ids))
+			AND (nullif(@uuid, NULL) IS NULL OR td.testing_datatype_uuid = @uuid)
+			AND (nullif(@uuids, '{}') IS NULL OR td.testing_datatype_uuid = ANY(@uuids))
 			ORDER BY td.created_at
-		`)
+		`
 
-		stmt, err = ConvertNamedToPositionalParams(invalidDataType)
+		preparedStatement, err = PrepareStatement(invalidDataType)
 		require.NoError(t, err)
-		require.NotNil(t, stmt)
+		require.NotNil(t, preparedStatement)
 
-		row, err := stmt.QueryRow(db,
-			SetParameter("uuids", pq.Array([]string{testData.UUID})),
+		row, err := preparedStatement.QueryRow(db,
+			BindNamedParameterValue("uuids", pq.Array([]string{testData.UUID})),
 		)
 		require.NoError(t, err)
 		require.NotNil(t, row)
