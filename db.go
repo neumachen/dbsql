@@ -5,10 +5,9 @@ import (
 	"database/sql"
 )
 
-// SQLExecutor defines an interface for executing SQL operations.
-// It mirrors the core functionality of database/sql.DB, providing both
-// context-aware and non-context methods for database operations.
-type SQLExecutor interface {
+// DbPreparer defines an interface for creating prepared statements. It mirrors the core functionality of
+// database/sql.DB, providing both context-aware and non-context methods for preparing SQL statements.
+type DbPreparer interface {
 	// Prepare creates a prepared statement for later queries or executions.
 	// It returns a sql.Stmt and an error, if any.
 	Prepare(query string) (*sql.Stmt, error)
@@ -16,7 +15,12 @@ type SQLExecutor interface {
 	// PrepareContext creates a prepared statement for later queries or executions.
 	// It accepts a context.Context for cancellation and timeout control.
 	PrepareContext(ctx context.Context, query string) (*sql.Stmt, error)
+}
 
+// DbExecutor defines an interface for executing SQL operations.
+// It mirrors the core functionality of database/sql.DB, providing both
+// context-aware and non-context methods for database operations.
+type DbExecutor interface {
 	// Exec executes a query without returning any rows.
 	// The args are for any placeholder parameters in the query.
 	// It returns a sql.Result summarizing the effect of the statement.
@@ -42,11 +46,33 @@ type SQLExecutor interface {
 	// QueryRowContext executes a query that is expected to return at most one row.
 	// It accepts a context.Context for cancellation and timeout control.
 	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+}
 
+// DbPreparerExecutor defines an interface for preparing and executing SQL operations.
+// It combines the Preparer and Executor interfaces, providing methods for
+// creating prepared statements and executing SQL operations.
+type DbPreparerExecutor interface {
+	// Preparer provides methods for creating prepared statements.
+	DbPreparer
+	// Executor provides methods for executing SQL operations.
+	DbExecutor
+}
+
+type DbCloser interface {
+	// Close closes the database, releasing any open resources.
+	Close() error
+}
+
+type DbPinger interface {
 	// Ping verifies a connection to the database is still alive,
 	// establishing a connection if necessary.
 	Ping() error
+}
 
-	// Close closes the database, releasing any open resources.
-	Close() error
+// Db ...
+type Db interface {
+	DbExecutor
+	DbPreparer
+	DbCloser
+	DbPinger
 }

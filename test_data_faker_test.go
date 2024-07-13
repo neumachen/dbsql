@@ -1,7 +1,9 @@
 package dbsql
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"math/rand"
 	"sync"
 	"testing"
@@ -10,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jaswdr/faker"
 	"github.com/neumachen/randata"
+	"github.com/rs/xid"
 	"github.com/stretchr/testify/require"
 )
 
@@ -22,34 +25,34 @@ type testingDataType struct {
 	CreatedAt time.Time
 }
 
-func (t *testingDataType) ColumnMapperMap() ColumnMapperMap {
-	return ColumnMapperMap{
-		"testing_datatype_id": MapColumn[int64](func(value int64) error {
+func (t *testingDataType) ColumnMapperMap() ColumnBinderMap {
+	return ColumnBinderMap{
+		"testing_datatype_id": BindColumnToField[int64](func(value int64) error {
 			t.ID = value
 			return nil
 		},
 		),
-		"testing_datatype_uuid": MapColumn[[]uint8](func(value []uint8) error {
+		"testing_datatype_uuid": BindColumnToField[[]uint8](func(value []uint8) error {
 			t.UUID = string(value)
 			return nil
 		},
 		),
-		"word": MapColumn[string](func(value string) error {
+		"word": BindColumnToField[string](func(value string) error {
 			t.Word = value
 			return nil
 		},
 		),
-		"paragraph": MapColumn[string](func(value string) error {
+		"paragraph": BindColumnToField[string](func(value string) error {
 			t.Paragraph = value
 			return nil
 		},
 		),
-		"metadata": MapColumn[[]byte](func(value []byte) error {
+		"metadata": BindColumnToField[[]byte](func(value []byte) error {
 			t.Metadata = json.RawMessage(value)
 			return nil
 		},
 		),
-		"created_at": MapColumn[time.Time](func(value time.Time) error {
+		"created_at": BindColumnToField[time.Time](func(value time.Time) error {
 			t.CreatedAt = value
 			return nil
 		},
@@ -70,13 +73,13 @@ func (t *testingDataType) mapRow(row MappedRow) error {
 	return nil
 }
 
-func (t testingDataType) asParameters() []BindNamedParameterValueFunc {
-	return []BindNamedParameterValueFunc{
-		BindNamedParameterValue("uuid", t.UUID),
-		BindNamedParameterValue("word", t.Word),
-		BindNamedParameterValue("paragraph", t.Paragraph),
-		BindNamedParameterValue("metadata", t.Metadata),
-		BindNamedParameterValue("created_at", t.CreatedAt),
+func (t testingDataType) asParameters() []BindParameterValueFunc {
+	return []BindParameterValueFunc{
+		BindParameterValue("uuid", t.UUID),
+		BindParameterValue("word", t.Word),
+		BindParameterValue("paragraph", t.Paragraph),
+		BindParameterValue("metadata", t.Metadata),
+		BindParameterValue("created_at", t.CreatedAt),
 	}
 }
 
@@ -119,16 +122,16 @@ type customer struct {
 	Address     *address     `json:"address,omitempty"`
 }
 
-func (c customer) asParameters(t *testing.T) []BindNamedParameterValueFunc {
+func (c customer) asParameters(t *testing.T) []BindParameterValueFunc {
 	contactInfo, err := json.Marshal(c.ContactInfo)
 	require.NoError(t, err)
 	address, err := json.Marshal(c.Address)
 	require.NoError(t, err)
-	return []BindNamedParameterValueFunc{
-		BindNamedParameterValue("last_name", c.LastName),
-		BindNamedParameterValue("first_name", c.FirstName),
-		BindNamedParameterValue("contact_info", contactInfo),
-		BindNamedParameterValue("address", address),
+	return []BindParameterValueFunc{
+		BindParameterValue("last_name", c.LastName),
+		BindParameterValue("first_name", c.FirstName),
+		BindParameterValue("contact_info", contactInfo),
+		BindParameterValue("address", address),
 	}
 }
 
@@ -147,11 +150,14 @@ func genFakeCustomerData(t *testing.T) customer {
 
 	fake := faker.NewWithSeed(rand.NewSource(time.Now().UTC().UnixNano()))
 
+	guid := xid.New()
+	emailAddress := fmt.Sprintf("%s@%s", guid.String(), fake.Internet().Domain())
+
 	c := customer{}
 	c.LastName = fake.Person().LastName()
 	c.FirstName = fake.Person().FirstName()
 	c.ContactInfo = &contactInfo{
-		EmailAddress: fake.Internet().Email(),
+		EmailAddress: emailAddress,
 	}
 	c.Address = &address{
 		Address: *randomAddress,
@@ -170,7 +176,12 @@ func createCustomerForTesting(t *testing.T) *customer {
 	preparedStatement, err := PrepareStatement(createCustomerQuery)
 	require.NoError(t, err, "failed to convert to positional params")
 
-	rows, err := preparedStatement.Query(db, createCustomer.asParameters(t)...)
+	rows, err := QueryContext(
+		context.TODO(),
+		db,
+		preparedStatement,
+		createCustomer.asParameters(t)...,
+	)
 	require.NoError(t, err, "failed to query creating customer")
 	require.NotNil(t, rows)
 	mappedRows, err := MapRows(rows)

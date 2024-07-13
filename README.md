@@ -2,6 +2,7 @@
 
 The `dbsql` package provides a set of utilities and abstractions for working with SQL databases in Go. It aims to simplify the process of managing prepared statements, mapping query results to struct fields, and handling named parameters.
 
+
 ## Features
 
 - **Prepared Statements**: The `PreparedStatement` interface and `preparedStatement` struct simplify the creation, execution, and management of prepared SQL statements with named parameters.

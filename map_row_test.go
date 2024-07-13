@@ -1,6 +1,7 @@
 package dbsql
 
 import (
+	"context"
 	"testing"
 
 	"github.com/lib/pq"
@@ -13,16 +14,18 @@ func TestMapRow(t *testing.T) {
 	db := testConnectToDatabase(t)
 	defer testCloseDB(t, db)
 
-	stmt, err := PrepareStatement(
+	preparedStatement, err := PrepareStatement(
 		insertTestingDataTypeQuery,
 	)
 	require.NoError(t, err)
-	require.NotNil(t, stmt)
+	require.NotNil(t, preparedStatement)
 
 	testData := genFakeTestingDataType(t)
 
-	result, execErr := stmt.Exec(
+	result, execErr := ExecContext(
+		context.Background(),
 		db,
+		preparedStatement,
 		testData.asParameters()...,
 	)
 	require.NoError(t, execErr)
@@ -31,16 +34,19 @@ func TestMapRow(t *testing.T) {
 	require.NoError(t, rowErr)
 	require.Equal(t, int64(1), rowsAffected)
 
-	stmt, err = PrepareStatement(selectTestingDataTypeQuery)
+	preparedStatement, err = PrepareStatement(selectTestingDataTypeQuery)
 	require.NoError(t, err)
-	require.NotNil(t, stmt)
+	require.NotNil(t, preparedStatement)
 
-	row, err := stmt.QueryRow(db,
-		BindNamedParameterValue("uuids", pq.Array([]string{testData.UUID})),
+	row, err := QueryRowContext(
+		context.TODO(),
+		db,
+		preparedStatement,
+		BindParameterValue("uuids", pq.Array([]string{testData.UUID})),
 	)
 	require.NoError(t, err)
 	require.NotNil(t, row)
-	columns := []string{
+	expectedColumns := Columns{
 		"testing_datatype_id",
 		"testing_datatype_uuid",
 		"word",
@@ -48,7 +54,11 @@ func TestMapRow(t *testing.T) {
 		"metadata",
 		"created_at",
 	}
-	mappedRow, err := MapRow(row, columns)
+	mappedRow, err := MapRow(row, expectedColumns)
 	require.NoError(t, err)
 	require.NotNil(t, mappedRow)
+
+	for _, expectedColumn := range expectedColumns {
+		require.True(t, mappedRow.HasColumn(expectedColumn))
+	}
 }

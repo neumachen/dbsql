@@ -1,6 +1,7 @@
 package dbsql
 
 import (
+	"context"
 	"testing"
 
 	"github.com/lib/pq"
@@ -24,8 +25,10 @@ func TestMapColumn(t *testing.T) {
 
 	testData := genFakeTestingDataType(t)
 
-	result, execErr := preparedStatement.Exec(
+	result, execErr := ExecContext(
+		context.Background(),
 		db,
+		preparedStatement,
 		testData.asParameters()...,
 	)
 	require.NoError(t, execErr)
@@ -36,12 +39,15 @@ func TestMapColumn(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, preparedStatement)
 
-		row, err := preparedStatement.QueryRow(db,
-			BindNamedParameterValue("uuids", pq.Array([]string{testData.UUID})),
+		row, err := QueryRowContext(
+			context.TODO(),
+			db,
+			preparedStatement,
+			BindParameterValue("uuids", pq.Array([]string{testData.UUID})),
 		)
 		require.NoError(t, err)
 		require.NotNil(t, row)
-		columns := []string{
+		columns := Columns{
 			"testing_datatype_id",
 			"testing_datatype_uuid",
 			"word",
@@ -84,12 +90,15 @@ func TestMapColumn(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, preparedStatement)
 
-		row, err := preparedStatement.QueryRow(db,
-			BindNamedParameterValue("uuids", pq.Array([]string{testData.UUID})),
+		row, err := QueryRowContext(
+			context.TODO(),
+			db,
+			preparedStatement,
+			BindParameterValue("uuids", pq.Array([]string{testData.UUID})),
 		)
 		require.NoError(t, err)
 		require.NotNil(t, row)
-		columns := []string{
+		columns := Columns{
 			"testing_datatype_id",
 			"testing_datatype_uuid",
 			"word",

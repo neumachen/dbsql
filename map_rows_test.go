@@ -1,6 +1,7 @@
 package dbsql
 
 import (
+	"context"
 	"encoding/json"
 	"testing"
 	"time"
@@ -15,11 +16,11 @@ func TestMapRows(t *testing.T) {
 	db := testConnectToDatabase(t)
 	defer testCloseDB(t, db)
 
-	stmt, err := PrepareStatement(
+	preparedStatement, err := PrepareStatement(
 		insertTestingDataTypeQuery,
 	)
 	require.NoError(t, err)
-	require.NotNil(t, stmt)
+	require.NotNil(t, preparedStatement)
 
 	count := 3
 	uuids := make([]string, count)
@@ -27,8 +28,10 @@ func TestMapRows(t *testing.T) {
 	expectedData := make(map[string]testingDataType)
 	for i := 0; i < count; i++ {
 		testData := genFakeTestingDataType(t)
-		result, execErr := stmt.Exec(
+		result, execErr := ExecContext(
+			context.TODO(),
 			db,
+			preparedStatement,
 			testData.asParameters()...,
 		)
 		require.NoError(t, execErr)
@@ -40,12 +43,15 @@ func TestMapRows(t *testing.T) {
 		uuids[i] = testData.UUID
 	}
 
-	stmt, err = PrepareStatement(selectTestingDataTypeQuery)
+	preparedStatement, err = PrepareStatement(selectTestingDataTypeQuery)
 	require.NoError(t, err)
-	require.NotNil(t, stmt)
+	require.NotNil(t, preparedStatement)
 
-	rows, err := stmt.Query(db,
-		BindNamedParameterValue("uuids", pq.Array(uuids)),
+	rows, err := QueryContext(
+		context.TODO(),
+		db,
+		preparedStatement,
+		BindParameterValue("uuids", pq.Array(uuids)),
 	)
 	require.NoError(t, err)
 	require.NotNil(t, rows)
@@ -77,12 +83,15 @@ func TestMapRows(t *testing.T) {
 		require.True(t, isEqual)
 	}
 
-	stmt, err = PrepareStatement(deleteTestingDataTypeQuery)
+	preparedStatement, err = PrepareStatement(deleteTestingDataTypeQuery)
 	require.NoError(t, err)
-	require.NotNil(t, stmt)
+	require.NotNil(t, preparedStatement)
 
-	result, err := stmt.Exec(db,
-		BindNamedParameterValue("uuids", pq.Array(uuids)),
+	result, err := ExecContext(
+		context.TODO(),
+		db,
+		preparedStatement,
+		BindParameterValue("uuids", pq.Array(uuids)),
 	)
 	require.NoError(t, err)
 	require.NotNil(t, result)

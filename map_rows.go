@@ -39,13 +39,13 @@ func MapRows(rows *sql.Rows) (MappedRows, error) {
 		rowMap := make(MappedRow)
 
 		// Map each column to its corresponding value
-		for i, col := range columns {
+		for i, column := range columns {
 			val := values[i]
 			if b, ok := val.([]byte); ok {
 				// Convert []byte to []byte to prevent underlying array sharing
-				rowMap[Column(col)] = append([]byte(nil), b...)
+				rowMap[Column(column)] = append([]byte(nil), b...)
 			} else {
-				rowMap[Column(col)] = val
+				rowMap[Column(column)] = val
 			}
 		}
 

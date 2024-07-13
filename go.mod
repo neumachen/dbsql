@@ -1,12 +1,13 @@
 module github.com/neumachen/dbsql
 
-go 1.20
+go 1.22
 
 require (
 	github.com/google/uuid v1.3.0
 	github.com/jaswdr/faker v1.18.0
 	github.com/lib/pq v1.10.9
 	github.com/neumachen/randata v0.3.0
+	github.com/rs/xid v1.5.0
 	github.com/stretchr/testify v1.8.4
 )
 

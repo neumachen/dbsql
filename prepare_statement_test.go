@@ -11,7 +11,7 @@ type PrepareStatementTest struct {
 	Name                       string
 	UnpreparedStatement        string
 	ExpectedStatement          string
-	ExpectedParameterPositions *NamedParameterPositions
+	ExpectedParameterPositions *ParameterPositions
 }
 
 func TestPrepareStatement(t *testing.T) {
@@ -25,7 +25,7 @@ func TestPrepareStatement(t *testing.T) {
 		{
 			UnpreparedStatement: "SELECT * FROM table WHERE col1 = @name",
 			ExpectedStatement:   "SELECT * FROM table WHERE col1 = $1",
-			ExpectedParameterPositions: &NamedParameterPositions{
+			ExpectedParameterPositions: &ParameterPositions{
 				parameterPositions: map[string][]int{
 					"name": {0},
 				},
@@ -36,7 +36,7 @@ func TestPrepareStatement(t *testing.T) {
 		{
 			UnpreparedStatement: "SELECT * FROM table WHERE col1 = @name AND col2 = @occupation",
 			ExpectedStatement:   "SELECT * FROM table WHERE col1 = $1 AND col2 = $2",
-			ExpectedParameterPositions: &NamedParameterPositions{
+			ExpectedParameterPositions: &ParameterPositions{
 				parameterPositions: map[string][]int{
 					"name":       {0},
 					"occupation": {1},
@@ -48,7 +48,7 @@ func TestPrepareStatement(t *testing.T) {
 		{
 			UnpreparedStatement: "SELECT * FROM table WHERE col1 = @name AND col2 = @name",
 			ExpectedStatement:   "SELECT * FROM table WHERE col1 = $1 AND col2 = $2",
-			ExpectedParameterPositions: &NamedParameterPositions{
+			ExpectedParameterPositions: &ParameterPositions{
 				parameterPositions: map[string][]int{
 					"name": {0, 1},
 				},
@@ -59,7 +59,7 @@ func TestPrepareStatement(t *testing.T) {
 		{
 			UnpreparedStatement: "SELECT * FROM table WHERE col1 IN (@something, @else)",
 			ExpectedStatement:   "SELECT * FROM table WHERE col1 IN ($1, $2)",
-			ExpectedParameterPositions: &NamedParameterPositions{
+			ExpectedParameterPositions: &ParameterPositions{
 				parameterPositions: map[string][]int{
 					"something": {0},
 					"else":      {1},
@@ -77,7 +77,7 @@ func TestPrepareStatement(t *testing.T) {
 		{
 			UnpreparedStatement: "SELECT * FROM table WHERE col1 = '@literal' AND col2 = @literal AND col3 LIKE '@literal'",
 			ExpectedStatement:   "SELECT * FROM table WHERE col1 = '@literal' AND col2 = $1 AND col3 LIKE '@literal'",
-			ExpectedParameterPositions: &NamedParameterPositions{
+			ExpectedParameterPositions: &ParameterPositions{
 				parameterPositions: map[string][]int{
 					"literal": {0},
 				},
@@ -88,7 +88,7 @@ func TestPrepareStatement(t *testing.T) {
 		{
 			UnpreparedStatement: "SELECT * FROM table WHERE col1 = @foo AND col2 IN (SELECT id FROM tabl2 WHERE col10 = @bar)",
 			ExpectedStatement:   "SELECT * FROM table WHERE col1 = $1 AND col2 IN (SELECT id FROM tabl2 WHERE col10 = $2)",
-			ExpectedParameterPositions: &NamedParameterPositions{
+			ExpectedParameterPositions: &ParameterPositions{
 				parameterPositions: map[string][]int{
 					"foo": {0},
 					"bar": {1},
@@ -100,7 +100,7 @@ func TestPrepareStatement(t *testing.T) {
 		{
 			UnpreparedStatement: "SELECT * FROM table WHERE col1 = @1234567890 AND col2 = @0987654321",
 			ExpectedStatement:   "SELECT * FROM table WHERE col1 = $1 AND col2 = $2",
-			ExpectedParameterPositions: &NamedParameterPositions{
+			ExpectedParameterPositions: &ParameterPositions{
 				parameterPositions: map[string][]int{
 					"1234567890": {0},
 					"0987654321": {1},
@@ -112,7 +112,7 @@ func TestPrepareStatement(t *testing.T) {
 		{
 			UnpreparedStatement: "SELECT * FROM table WHERE col1 = @ABCDEFGHIJKLMNOPQRSTUVWXYZ",
 			ExpectedStatement:   "SELECT * FROM table WHERE col1 = $1",
-			ExpectedParameterPositions: &NamedParameterPositions{
+			ExpectedParameterPositions: &ParameterPositions{
 				parameterPositions: map[string][]int{
 					"ABCDEFGHIJKLMNOPQRSTUVWXYZ": {0},
 				},
@@ -123,7 +123,7 @@ func TestPrepareStatement(t *testing.T) {
 		{
 			UnpreparedStatement: "SELECT * FROM table WHERE col1 = @abc123ABC098",
 			ExpectedStatement:   "SELECT * FROM table WHERE col1 = $1",
-			ExpectedParameterPositions: &NamedParameterPositions{
+			ExpectedParameterPositions: &ParameterPositions{
 				parameterPositions: map[string][]int{
 					"abc123ABC098": {0},
 				},
@@ -134,7 +134,7 @@ func TestPrepareStatement(t *testing.T) {
 		{
 			UnpreparedStatement: "SELECT * FROM table WHERE col1 LIKE %@t%",
 			ExpectedStatement:   "SELECT * FROM table WHERE col1 LIKE %$1%",
-			ExpectedParameterPositions: &NamedParameterPositions{
+			ExpectedParameterPositions: &ParameterPositions{
 				parameterPositions: map[string][]int{
 					"t": {0},
 				},
@@ -145,7 +145,7 @@ func TestPrepareStatement(t *testing.T) {
 		{
 			UnpreparedStatement: "ST_GeomFromText('POINT(' || @long @lat || ',4326)'",
 			ExpectedStatement:   "ST_GeomFromText('POINT(' || $1 $2 || ',4326)'",
-			ExpectedParameterPositions: &NamedParameterPositions{
+			ExpectedParameterPositions: &ParameterPositions{
 				parameterPositions: map[string][]int{
 					"long": {0},
 					"lat":  {1},
@@ -157,7 +157,7 @@ func TestPrepareStatement(t *testing.T) {
 		{
 			UnpreparedStatement: "SELECT * FROM table WHERE col1 = @first_name AND col2 = @last_name",
 			ExpectedStatement:   "SELECT * FROM table WHERE col1 = $1 AND col2 = $2",
-			ExpectedParameterPositions: &NamedParameterPositions{
+			ExpectedParameterPositions: &ParameterPositions{
 				parameterPositions: map[string][]int{
 					"first_name": {0},
 					"last_name":  {1},
@@ -173,17 +173,17 @@ func TestPrepareStatement(t *testing.T) {
 			preparedStatement, err := PrepareStatement(test.UnpreparedStatement)
 			require.NoError(t, err)
 			require.Equal(t, test.ExpectedStatement, preparedStatement.Revised())
-			actualParamPositions := preparedStatement.NamedParameterPositions()
+			actualParamPositions := preparedStatement.ParameterPositions()
 			require.Equal(t, test.ExpectedParameterPositions, actualParamPositions, test.Name)
 		})
 	}
 }
 
 type BoundNamedParameterValuesTest struct {
-	Name                     string
-	UnpreparedStatement      string
-	BindNamedParameterValues []TestNamedParameterValue
-	ExpectedBoundValues      []any
+	Name                string
+	UnpreparedStatement string
+	BindParameterValues []TestNamedParameterValue
+	ExpectedBoundValues []any
 }
 
 type TestNamedParameterValue struct {
@@ -196,7 +196,7 @@ func TestBindNamedParameterValues(t *testing.T) {
 		{
 			Name:                "Single String Parameter",
 			UnpreparedStatement: "SELECT * FROM table WHERE col1 = @foo",
-			BindNamedParameterValues: []TestNamedParameterValue{
+			BindParameterValues: []TestNamedParameterValue{
 				{
 					Name:  "foo",
 					Value: "bar",
@@ -209,7 +209,7 @@ func TestBindNamedParameterValues(t *testing.T) {
 		{
 			Name:                "Two String Parameter",
 			UnpreparedStatement: "SELECT * FROM table WHERE col1 = @foo AND col2 = @foo2",
-			BindNamedParameterValues: []TestNamedParameterValue{
+			BindParameterValues: []TestNamedParameterValue{
 				{
 					Name:  "foo",
 					Value: "bar",
@@ -227,7 +227,7 @@ func TestBindNamedParameterValues(t *testing.T) {
 		{
 			Name:                "Repeated Parameters",
 			UnpreparedStatement: "SELECT * FROM table WHERE col1 = @foo AND col2 = @foo",
-			BindNamedParameterValues: []TestNamedParameterValue{
+			BindParameterValues: []TestNamedParameterValue{
 				{
 					Name:  "foo",
 					Value: "bar",
@@ -241,7 +241,7 @@ func TestBindNamedParameterValues(t *testing.T) {
 		{
 			Name:                "Type Parameters",
 			UnpreparedStatement: "SELECT * FROM table WHERE col1 = @str AND col2 = @int AND col3 = @pi",
-			BindNamedParameterValues: []TestNamedParameterValue{
+			BindParameterValues: []TestNamedParameterValue{
 				{
 					Name:  "str",
 					Value: "foo",
@@ -264,7 +264,7 @@ func TestBindNamedParameterValues(t *testing.T) {
 		{
 			Name:                "Ordered Parameters",
 			UnpreparedStatement: "SELECT * FROM table WHERE col1 = @foo AND col2 = @bar AND col3 = @foo AND col4 = @foo AND col5 = @bar",
-			BindNamedParameterValues: []TestNamedParameterValue{
+			BindParameterValues: []TestNamedParameterValue{
 				{
 					Name:  "foo",
 					Value: "something",
@@ -281,7 +281,7 @@ func TestBindNamedParameterValues(t *testing.T) {
 		{
 			Name:                "Case Sensitive",
 			UnpreparedStatement: "SELECT * FROM table WHERE col1 = @foo AND col2 = @FOO",
-			BindNamedParameterValues: []TestNamedParameterValue{
+			BindParameterValues: []TestNamedParameterValue{
 				{
 					Name:  "foo",
 					Value: "baz",
@@ -298,7 +298,7 @@ func TestBindNamedParameterValues(t *testing.T) {
 		{
 			Name:                "Nil Parameter",
 			UnpreparedStatement: "SELECT * FROM table WHERE col1 = @foo",
-			BindNamedParameterValues: []TestNamedParameterValue{
+			BindParameterValues: []TestNamedParameterValue{
 				{
 					Name:  "foo",
 					Value: pq.Array([]string{}),
@@ -311,7 +311,7 @@ func TestBindNamedParameterValues(t *testing.T) {
 		{
 			Name:                "Casted Type Parameter",
 			UnpreparedStatement: "SELECT * FROM table WHERE col1 = @foo",
-			BindNamedParameterValues: []TestNamedParameterValue{
+			BindParameterValues: []TestNamedParameterValue{
 				{
 					Name:  "foo",
 					Value: "'testing'::varchar",
@@ -325,20 +325,20 @@ func TestBindNamedParameterValues(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
-			parameterFuncs := make([]BindNamedParameterValueFunc, 0)
+			parameterFuncs := make([]BindParameterValueFunc, 0)
 			prepraredStatement, err := PrepareStatement(test.UnpreparedStatement)
 			require.NoError(t, err)
 
-			for _, bindValue := range test.BindNamedParameterValues {
-				err = prepraredStatement.BindNamedParameterValue(bindValue.Name, bindValue.Value)
+			for _, bindValue := range test.BindParameterValues {
+				err = prepraredStatement.BindParameterValue(bindValue.Name, bindValue.Value)
 				require.NoError(t, err)
-				parameterFuncs = append(parameterFuncs, BindNamedParameterValue(bindValue.Name, bindValue.Value))
+				parameterFuncs = append(parameterFuncs, BindParameterValue(bindValue.Name, bindValue.Value))
 			}
 
-			err = prepraredStatement.BindNamedParameterValues(parameterFuncs...)
+			err = prepraredStatement.BindParameterValues(parameterFuncs...)
 			require.NoError(t, err)
 
-			for posIndex, boundValue := range prepraredStatement.BoundNamedParameterValues() {
+			for posIndex, boundValue := range prepraredStatement.BoundParameterValues() {
 				require.Equal(t, boundValue, test.ExpectedBoundValues[posIndex], test.Name)
 			}
 		})

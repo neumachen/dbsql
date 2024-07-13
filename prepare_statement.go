@@ -12,7 +12,8 @@ const (
 	// A constant rune ('\'') used as the escape character for quotes in the query.
 	parameterEscape = '\''
 	// A constant string ("$") used as the prefix for positional parameter placeholders.
-	placeholderPrefix = "$"
+	// TODO: add support for other drivers, currently only supports PostgreSQL.
+	pgPlaceholderPrefix = "$"
 )
 
 // PrepareStatement takes an unprepared SQL statement and returns a PreparedStatement interface.
@@ -49,7 +50,7 @@ func PrepareStatement(unpreparedStatement string) (PreparedStatement, error) {
 	var namedParameter []byte
 	unpreparedStatementByte := []byte(unpreparedStatement)
 
-	namedParamPositions := &NamedParameterPositions{}
+	namedParamPositions := ParameterPositions{}
 
 	runeCount := utf8.RuneCount(unpreparedStatementByte)
 
@@ -81,7 +82,7 @@ func PrepareStatement(unpreparedStatement string) (PreparedStatement, error) {
 
 			// Replace the named parameter with a positional parameter placeholder
 			placeholder := strconv.Itoa(positionIndex)
-			revisedStatement = append(revisedStatement, placeholderPrefix...)
+			revisedStatement = append(revisedStatement, pgPlaceholderPrefix...)
 			revisedStatement = append(revisedStatement, placeholder...)
 
 			namedParameter = namedParameter[:0] // Reset the parameterBuilder
@@ -112,9 +113,9 @@ func PrepareStatement(unpreparedStatement string) (PreparedStatement, error) {
 	// Return a new preparedStatement struct with the revised statement, named parameter positions, and other information
 	return &preparedStatement{
 		originalStatement:     unpreparedStatement,
-		namedParamPositions:   namedParamPositions,
+		namedParamPositions:   &namedParamPositions,
 		revisedStatement:      string(revisedStatement),
-		boundNamedParamValues: make(BoundNamedParameterValues, positionIndex),
+		boundNamedParamValues: make(BoundParameterValues, positionIndex),
 	}, nil
 }
 
