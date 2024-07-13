@@ -1,11 +1,11 @@
-package sqldb
+package dbsql
 
 import (
 	"context"
 	"database/sql"
 	"errors"
 
-	"github.com/neumachen/sqldb/internal"
+	"github.com/neumachen/dbsql/internal"
 )
 
 // NamedParameterPositions is a struct that represents the positions of parameters in an SQL statement.

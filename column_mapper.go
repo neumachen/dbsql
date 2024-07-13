@@ -1,9 +1,9 @@
-package sqldb
+package dbsql
 
 import (
 	"fmt"
 
-	"github.com/neumachen/sqldb/internal"
+	"github.com/neumachen/dbsql/internal"
 )
 
 // Column is a string type representing a column name.

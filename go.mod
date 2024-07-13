@@ -1,4 +1,4 @@
-module github.com/neumachen/sqldb
+module github.com/neumachen/dbsql
 
 go 1.20
 

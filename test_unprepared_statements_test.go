@@ -1,4 +1,4 @@
-package sqldb
+package dbsql
 
 const insertTestingDataTypeQuery = `
 	INSERT INTO testing_datatypes (

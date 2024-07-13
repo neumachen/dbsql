@@ -1,4 +1,4 @@
-package sqldb
+package dbsql
 
 import (
 	"database/sql"
@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/neumachen/sqldb/internal"
+	"github.com/neumachen/dbsql/internal"
 	"github.com/stretchr/testify/require"
 )
 
@@ -18,7 +18,7 @@ import (
 func testPgDBCreds(t *testing.T) *url.URL {
 	v := os.Getenv("")
 	if v == "" {
-		v = "postgres://sqldb:sqldb@localhost:5432/sqldb_dev?sslmode=disable"
+		v = "postgres://dbsql:dbsql@localhost:5432/dbsql_dev?sslmode=disable"
 	}
 	u, err := url.Parse(v)
 	require.NoError(t, err)

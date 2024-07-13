@@ -1,4 +1,4 @@
-package sqldb
+package dbsql
 
 import (
 	"strconv"
@@ -27,12 +27,12 @@ const (
 //
 // Example usage:
 //
-//	stmt, err := PrepareStatement("SELECT * FROM users WHERE name = @name AND age > @age")
+//	preparedStmt, err := PrepareStatement("SELECT * FROM users WHERE name = @name AND age > @age")
 //	if err != nil {
 //		// handle error
 //	}
 //
-//	rows, err := stmt.Query(db,
+//	rows, err := preparedStmt.Query(db,
 //		BindNamedParameterValue("name", "John"),
 //		BindNamedParameterValue("age", 30),
 //	)
