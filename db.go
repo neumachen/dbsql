@@ -5,9 +5,16 @@ import (
 	"database/sql"
 )
 
-// DbPreparer defines an interface for creating prepared statements. It mirrors the core functionality of
+// NOTE: Benefits of Using Multiple Interfaces in Go
+// 1. It promotes the Interface Segregation Principle (ISP), allowing clients to depend only on the methods they need.
+// 2. It increases modularity and flexibility, making it easier to swap implementations or mock specific behaviors in tests.
+// 3. It improves code readability and maintainability by clearly defining the responsibilities of each interface.
+// 4. It allows for easier composition of interfaces, as demonstrated by the DBPreparerExecutor and DB interfaces.
+// 5. It provides better abstraction, hiding unnecessary details from clients that only need specific functionality.
+
+// DBPreparer defines an interface for creating prepared statements. It mirrors the core functionality of
 // database/sql.DB, providing both context-aware and non-context methods for preparing SQL statements.
-type DbPreparer interface {
+type DBPreparer interface {
 	// Prepare creates a prepared statement for later queries or executions.
 	// It returns a sql.Stmt and an error, if any.
 	Prepare(query string) (*sql.Stmt, error)
@@ -17,10 +24,10 @@ type DbPreparer interface {
 	PrepareContext(ctx context.Context, query string) (*sql.Stmt, error)
 }
 
-// DbExecutor defines an interface for executing SQL operations.
+// DBExecutor defines an interface for executing SQL operations.
 // It mirrors the core functionality of database/sql.DB, providing both
 // context-aware and non-context methods for database operations.
-type DbExecutor interface {
+type DBExecutor interface {
 	// Exec executes a query without returning any rows.
 	// The args are for any placeholder parameters in the query.
 	// It returns a sql.Result summarizing the effect of the statement.
@@ -48,31 +55,31 @@ type DbExecutor interface {
 	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
 }
 
-// DbPreparerExecutor defines an interface for preparing and executing SQL operations.
+// DBPreparerExecutor defines an interface for preparing and executing SQL operations.
 // It combines the Preparer and Executor interfaces, providing methods for
 // creating prepared statements and executing SQL operations.
-type DbPreparerExecutor interface {
+type DBPreparerExecutor interface {
 	// Preparer provides methods for creating prepared statements.
-	DbPreparer
+	DBPreparer
 	// Executor provides methods for executing SQL operations.
-	DbExecutor
+	DBExecutor
 }
 
-type DbCloser interface {
+type DBCloser interface {
 	// Close closes the database, releasing any open resources.
 	Close() error
 }
 
-type DbPinger interface {
+type DBPinger interface {
 	// Ping verifies a connection to the database is still alive,
 	// establishing a connection if necessary.
 	Ping() error
 }
 
-// Db ...
-type Db interface {
-	DbExecutor
-	DbPreparer
-	DbCloser
-	DbPinger
+// DB ...
+type DB interface {
+	DBExecutor
+	DBPreparer
+	DBCloser
+	DBPinger
 }

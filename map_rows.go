@@ -7,9 +7,12 @@ import (
 // MappedRows represents a collection of mapped rows.
 type MappedRows []MappedRow
 
-// Count returns the number of rows in the MappedRows.
-func (m MappedRows) Count() int {
-	return len(m)
+func (m MappedRows) Columns() Columns {
+	if len(m) < 1 {
+		return nil
+	}
+
+	return m[0].Columns()
 }
 
 // MapRows maps the columns and values of the given sql.Rows to a MappedRows.

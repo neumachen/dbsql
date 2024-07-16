@@ -6,8 +6,18 @@ import (
 )
 
 // Exec executes the prepared SQL statement with the bound parameters.
+// It uses the default background context.
+//
+// Parameters:
+//   - dbPrepExec: An interface that can prepare and execute SQL statements.
+//   - preparedStatement: The prepared statement to be executed.
+//   - binderFuncs: Optional functions to bind parameter values.
+//
+// Returns:
+//   - sql.Result: The result of the SQL execution.
+//   - error: An error if the execution fails.
 func Exec(
-	dbPrepExec DbPreparerExecutor,
+	dbPrepExec DBPreparerExecutor,
 	preparedStatement PreparedStatement,
 	binderFuncs ...BindParameterValueFunc,
 ) (
@@ -23,18 +33,25 @@ func Exec(
 }
 
 // ExecContext executes the prepared SQL statement with the bound parameters in the provided context.
+//
+// Parameters:
+//   - ctx: The context for the execution.
+//   - dbPrepExec: An interface that can prepare and execute SQL statements.
+//   - preparedStatement: The prepared statement to be executed.
+//   - binderFuncs: Optional functions to bind parameter values.
+//
+// Returns:
+//   - sql.Result: The result of the SQL execution.
+//   - error: An error if the execution fails.
 func ExecContext(
 	ctx context.Context,
-	dbPrepExec DbPreparerExecutor,
+	dbPrepExec DBPreparerExecutor,
 	preparedStatement PreparedStatement,
 	binderFuncs ...BindParameterValueFunc,
 ) (
 	sql.Result,
 	error,
 ) {
-	// TODO: Should this be resetting the bound values for the given prepared statement, or should it be left to the
-	// caller? An argument can be made that the internal prepare method sets the bound values in this block. But does
-	// that also mean that when a gdiven prepared statement that already has bound values will be reset?
 	defer func() {
 		preparedStatement.ResetParametersValues()
 	}()

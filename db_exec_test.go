@@ -36,8 +36,8 @@ func TestExecContext(t *testing.T) {
 		{
 			name: "Insert and delete records with the expected affected rows",
 			assertion: func(t *testing.T, desc string) {
-				db := testConnectToDatabase(t)
-				defer testCloseDB(t, db)
+				db := ConnectToDatabase(t)
+				defer CloseDB(t, db)
 
 				fake := faker.New()
 				genUUID := uuid.New()

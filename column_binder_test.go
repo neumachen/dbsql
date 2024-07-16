@@ -9,13 +9,13 @@ import (
 )
 
 func TestColumnMapper_Columns(t *testing.T) {
-	td := testingDataType{}
-	require.NotEmpty(t, td.ColumnMapperMap().Columns())
+	td := TestingDataType{}
+	require.NotEmpty(t, td.ColumnBinders())
 }
 
 func TestMapColumn(t *testing.T) {
-	db := testConnectToDatabase(t)
-	defer testCloseDB(t, db)
+	db := ConnectToDatabase(t)
+	defer CloseDB(t, db)
 
 	preparedStatement, err := PrepareStatement(
 		insertTestingDataTypeQuery,
@@ -23,13 +23,13 @@ func TestMapColumn(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, preparedStatement)
 
-	testData := genFakeTestingDataType(t)
+	testData := NewFakeTestingDataType(t)
 
 	result, execErr := ExecContext(
 		context.Background(),
 		db,
 		preparedStatement,
-		testData.asParameters()...,
+		testData.ParameterValues()...,
 	)
 	require.NoError(t, execErr)
 	require.NotNil(t, result)
@@ -59,8 +59,8 @@ func TestMapColumn(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, mappedRow)
 
-		td := testingDataType{}
-		err = td.mapRow(mappedRow)
+		td := TestingDataType{}
+		err = td.BindMappedRow(mappedRow)
 		require.NoError(t, err)
 
 		require.NotEmpty(t, td.ID)
@@ -94,7 +94,10 @@ func TestMapColumn(t *testing.T) {
 			context.TODO(),
 			db,
 			preparedStatement,
-			BindParameterValue("uuids", pq.Array([]string{testData.UUID})),
+			BindParameterValue(
+				"uuids",
+				pq.Array([]string{testData.UUID}),
+			),
 		)
 		require.NoError(t, err)
 		require.NotNil(t, row)
@@ -110,9 +113,13 @@ func TestMapColumn(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, mappedRow)
 
-		td := testingDataType{}
-		err = td.mapRow(mappedRow)
+		td := TestingDataType{}
+		err = td.BindMappedRow(mappedRow)
 		require.Error(t, err)
-		require.Equal(t, err.Error(), "column testing_datatype_id has a type of string and does not match asserted type: int64")
+		require.Equal(
+			t,
+			err.Error(),
+			"column testing_datatype_id has a type of string and does not match asserted type: int64",
+		)
 	})
 }

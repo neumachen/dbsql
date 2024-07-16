@@ -166,6 +166,18 @@ func TestPrepareStatement(t *testing.T) {
 			},
 			Name: "Snake Case",
 		},
+		{
+			UnpreparedStatement: "SELECT * FROM table WHERE col1 @> @jsonParam1 AND col2 <@ @jsonParam2",
+			ExpectedStatement:   "SELECT * FROM table WHERE col1 @> $1 AND col2 <@ $2",
+			ExpectedParameterPositions: &ParameterPositions{
+				parameterPositions: map[string][]int{
+					"jsonParam1": {0},
+					"jsonParam2": {1},
+				},
+				totalPositions: 2,
+			},
+			Name: "JSONB Operators",
+		},
 	}
 
 	for _, test := range tests {

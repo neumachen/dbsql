@@ -32,10 +32,10 @@ func TestQueryContext(t *testing.T) {
 		{
 			desc: "Create a customer and map the returned rows",
 			assertion: func(t *testing.T, desc string) {
-				db := testConnectToDatabase(t)
-				defer testCloseDB(t, db)
+				db := ConnectToDatabase(t)
+				defer CloseDB(t, db)
 
-				fakeCustomer := genFakeCustomerData(t)
+				fakeCustomer := NewFakeCustomerData(t)
 
 				preparedStatement, err := PrepareStatement(createCustomerQuery)
 				require.NoError(t, err, "failed to convert to positional params")
@@ -44,20 +44,20 @@ func TestQueryContext(t *testing.T) {
 					context.TODO(),
 					db,
 					preparedStatement,
-					fakeCustomer.asParameters(t)...,
+					fakeCustomer.ParameterValues(t)...,
 				)
 				require.NoError(t, err, desc)
 				require.NotNil(t, rows)
 				mappedRows, err := MapRows(rows)
 				require.NoError(t, err, desc)
 				require.NotNil(t, mappedRows)
-				require.Equal(t, 1, mappedRows.Count())
+				require.Equal(t, 1, len(mappedRows))
 
 				customerID, ok := mappedRows[0]["customer_id"]
 				require.True(t, ok)
 				require.NotEmpty(t, customerID)
 
-				deleteRecords(
+				DeleteRecords(
 					t,
 					db,
 					1,
@@ -70,8 +70,8 @@ func TestQueryContext(t *testing.T) {
 		{
 			desc: "Query for records without any parameters",
 			assertion: func(t *testing.T, desc string) {
-				db := testConnectToDatabase(t)
-				defer testCloseDB(t, db)
+				db := ConnectToDatabase(t)
+				defer CloseDB(t, db)
 
 				preparedStatement, err := PrepareStatement(selectCustomerQuery)
 				require.NoError(t, err, desc)
@@ -102,10 +102,10 @@ func TestQueryContext(t *testing.T) {
 		{
 			desc: "Query for records with parameters",
 			assertion: func(t *testing.T, desc string) {
-				db := testConnectToDatabase(t)
-				defer testCloseDB(t, db)
+				db := ConnectToDatabase(t)
+				defer CloseDB(t, db)
 
-				createdCustomer := createCustomerForTesting(t)
+				createdCustomer := CreateNewCustomerForTesting(t)
 
 				preparedStatement, err := PrepareStatement(selectCustomerQuery)
 				require.NoError(t, err, desc)

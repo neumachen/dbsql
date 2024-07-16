@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type testingDataType struct {
+type TestingDataType struct {
 	ID        int64
 	UUID      string
 	Word      string
@@ -25,55 +25,67 @@ type testingDataType struct {
 	CreatedAt time.Time
 }
 
-func (t *testingDataType) ColumnMapperMap() ColumnBinderMap {
-	return ColumnBinderMap{
-		"testing_datatype_id": BindColumnToField[int64](func(value int64) error {
-			t.ID = value
-			return nil
-		},
+func (t *TestingDataType) ColumnBinders() ColumnBinders {
+	return DefineColumnBinders(
+		DefineColumnBinding(
+			Column("testing_datatype_id"),
+			BindColumnToField(func(value int64) error {
+				t.ID = value
+				return nil
+			}),
 		),
-		"testing_datatype_uuid": BindColumnToField[[]uint8](func(value []uint8) error {
-			t.UUID = string(value)
-			return nil
-		},
+		DefineColumnBinding(
+			Column("testing_datatype_uuid"),
+			BindColumnToField(func(value []uint8) error {
+				t.UUID = string(value)
+				return nil
+			}),
 		),
-		"word": BindColumnToField[string](func(value string) error {
-			t.Word = value
-			return nil
-		},
+		DefineColumnBinding(
+			Column("word"),
+			BindColumnToField(func(value string) error {
+				t.Word = value
+				return nil
+			}),
 		),
-		"paragraph": BindColumnToField[string](func(value string) error {
-			t.Paragraph = value
-			return nil
-		},
+		DefineColumnBinding(
+			Column("paragraph"),
+			BindColumnToField(func(value string) error {
+				t.Paragraph = value
+				return nil
+			}),
 		),
-		"metadata": BindColumnToField[[]byte](func(value []byte) error {
-			t.Metadata = json.RawMessage(value)
-			return nil
-		},
+		DefineColumnBinding(
+			Column("metadata"),
+			BindColumnToField(func(value []byte) error {
+				t.Metadata = json.RawMessage(value)
+				return nil
+			}),
 		),
-		"created_at": BindColumnToField[time.Time](func(value time.Time) error {
-			t.CreatedAt = value
-			return nil
-		},
+		DefineColumnBinding(
+			Column("created_at"),
+			BindColumnToField(func(value time.Time) error {
+				t.CreatedAt = value
+				return nil
+			}),
 		),
-	}
+	)
 }
 
-func (t *testingDataType) mapRow(row MappedRow) error {
-	if row.Count() < 1 {
+func (t *TestingDataType) BindMappedRow(mappedRow MappedRow) error {
+	if len(mappedRow) < 1 {
 		return nil
 	}
 
-	for column, mapperFunc := range t.ColumnMapperMap() {
-		if err := mapperFunc(column, row); err != nil {
+	for _, columnBinder := range t.ColumnBinders() {
+		if err := columnBinder.BindColumn(mappedRow); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (t testingDataType) asParameters() []BindParameterValueFunc {
+func (t TestingDataType) ParameterValues() []BindParameterValueFunc {
 	return []BindParameterValueFunc{
 		BindParameterValue("uuid", t.UUID),
 		BindParameterValue("word", t.Word),
@@ -83,7 +95,7 @@ func (t testingDataType) asParameters() []BindParameterValueFunc {
 	}
 }
 
-func genFakeTestingDataType(t *testing.T) *testingDataType {
+func NewFakeTestingDataType(t *testing.T) *TestingDataType {
 	genUUID := uuid.New()
 	fake := faker.New()
 
@@ -95,7 +107,7 @@ func genFakeTestingDataType(t *testing.T) *testingDataType {
 	require.NoError(t, err)
 	metadata := json.RawMessage(b)
 
-	return &testingDataType{
+	return &TestingDataType{
 		UUID:      genUUID.String(),
 		Word:      fake.Lorem().Text(10),
 		Paragraph: fake.Lorem().Text(100),
@@ -104,25 +116,25 @@ func genFakeTestingDataType(t *testing.T) *testingDataType {
 	}
 }
 
-type address struct {
+type Address struct {
 	randata.Address
 	AddressID int `json:"address_id,omitempty"`
 }
 
-type contactInfo struct {
+type ContactInfo struct {
 	EmailAddressID int    `json:"email_address_id,omitempty"`
 	EmailAddress   string `json:"email_address"`
 }
 
-type customer struct {
+type Customer struct {
 	CustomerID  int64        `json:"customer_id,omitempty"`
 	LastName    string       `json:"last_name,omitempty"`
 	FirstName   string       `json:"first_name,omitempty"`
-	ContactInfo *contactInfo `json:"contact_info,omitempty"`
-	Address     *address     `json:"address,omitempty"`
+	ContactInfo *ContactInfo `json:"contact_info,omitempty"`
+	Address     *Address     `json:"address,omitempty"`
 }
 
-func (c customer) asParameters(t *testing.T) []BindParameterValueFunc {
+func (c Customer) ParameterValues(t *testing.T) []BindParameterValueFunc {
 	contactInfo, err := json.Marshal(c.ContactInfo)
 	require.NoError(t, err)
 	address, err := json.Marshal(c.Address)
@@ -135,7 +147,7 @@ func (c customer) asParameters(t *testing.T) []BindParameterValueFunc {
 	}
 }
 
-func genFakeCustomerData(t *testing.T) customer {
+func NewFakeCustomerData(t *testing.T) Customer {
 	t.Helper()
 
 	// NOTE: given we are running t.Parallel() on tests, to avoid race conditions when
@@ -153,25 +165,25 @@ func genFakeCustomerData(t *testing.T) customer {
 	guid := xid.New()
 	emailAddress := fmt.Sprintf("%s@%s", guid.String(), fake.Internet().Domain())
 
-	c := customer{}
+	c := Customer{}
 	c.LastName = fake.Person().LastName()
 	c.FirstName = fake.Person().FirstName()
-	c.ContactInfo = &contactInfo{
+	c.ContactInfo = &ContactInfo{
 		EmailAddress: emailAddress,
 	}
-	c.Address = &address{
+	c.Address = &Address{
 		Address: *randomAddress,
 	}
 
 	return c
 }
 
-func createCustomerForTesting(t *testing.T) *customer {
+func CreateNewCustomerForTesting(t *testing.T) *Customer {
 	t.Helper()
-	db := testConnectToDatabase(t)
-	defer testCloseDB(t, db)
+	db := ConnectToDatabase(t)
+	defer CloseDB(t, db)
 
-	createCustomer := genFakeCustomerData(t)
+	createCustomer := NewFakeCustomerData(t)
 
 	preparedStatement, err := PrepareStatement(createCustomerQuery)
 	require.NoError(t, err, "failed to convert to positional params")
@@ -180,20 +192,20 @@ func createCustomerForTesting(t *testing.T) *customer {
 		context.TODO(),
 		db,
 		preparedStatement,
-		createCustomer.asParameters(t)...,
+		createCustomer.ParameterValues(t)...,
 	)
 	require.NoError(t, err, "failed to query creating customer")
 	require.NotNil(t, rows)
 	mappedRows, err := MapRows(rows)
 	require.NoError(t, err, "failed to map rows")
 	require.NotNil(t, mappedRows)
-	require.Equal(t, 1, mappedRows.Count())
+	require.Equal(t, 1, len(mappedRows))
 
-	addr := address{}
+	addr := Address{}
 	err = json.Unmarshal(mappedRows[0]["address"].([]uint8), &addr)
 	require.NoError(t, err)
 
-	createdCustomer := &customer{
+	createdCustomer := &Customer{
 		CustomerID: mappedRows[0]["customer_id"].(int64),
 		LastName:   mappedRows[0]["last_name"].(string),
 		FirstName:  mappedRows[0]["first_name"].(string),

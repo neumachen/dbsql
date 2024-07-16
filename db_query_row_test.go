@@ -34,10 +34,10 @@ func TestQueryRowContext(t *testing.T) {
 		{
 			desc: "Create a record and expect the result",
 			assertion: func(t *testing.T, desc string) {
-				db := testConnectToDatabase(t)
-				defer testCloseDB(t, db)
+				db := ConnectToDatabase(t)
+				defer CloseDB(t, db)
 
-				fakeCustomer := genFakeCustomerData(t)
+				fakeCustomer := NewFakeCustomerData(t)
 
 				preparedStatement, err := PrepareStatement(createCustomerQuery)
 				require.NoError(t, err, "failed to convert to positional params")
@@ -46,7 +46,7 @@ func TestQueryRowContext(t *testing.T) {
 					context.TODO(),
 					db,
 					preparedStatement,
-					fakeCustomer.asParameters(t)...,
+					fakeCustomer.ParameterValues(t)...,
 				)
 				require.NoError(t, err, desc)
 				require.NotNil(t, row)
@@ -65,7 +65,7 @@ func TestQueryRowContext(t *testing.T) {
 
 				assertMappedCustomer(t, fakeCustomer, mappedRow)
 
-				deleteRecords(
+				DeleteRecords(
 					t,
 					db,
 					1,
@@ -78,8 +78,8 @@ func TestQueryRowContext(t *testing.T) {
 		{
 			desc: "Query a record without any parameters",
 			assertion: func(t *testing.T, desc string) {
-				db := testConnectToDatabase(t)
-				defer testCloseDB(t, db)
+				db := ConnectToDatabase(t)
+				defer CloseDB(t, db)
 
 				preparedStatement, err := PrepareStatement(selectCustomerQuery)
 				require.NoError(t, err, desc)
@@ -95,10 +95,10 @@ func TestQueryRowContext(t *testing.T) {
 		{
 			desc: "Query a record with parameters",
 			assertion: func(t *testing.T, desc string) {
-				db := testConnectToDatabase(t)
-				defer testCloseDB(t, db)
+				db := ConnectToDatabase(t)
+				defer CloseDB(t, db)
 
-				createdCustomer := createCustomerForTesting(t)
+				createdCustomer := CreateNewCustomerForTesting(t)
 
 				preparedStatement, err := PrepareStatement(selectCustomerQuery)
 				require.NoError(t, err, desc)

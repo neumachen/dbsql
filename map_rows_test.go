@@ -13,8 +13,8 @@ import (
 func TestMapRows(t *testing.T) {
 	t.Parallel()
 
-	db := testConnectToDatabase(t)
-	defer testCloseDB(t, db)
+	db := ConnectToDatabase(t)
+	defer CloseDB(t, db)
 
 	preparedStatement, err := PrepareStatement(
 		insertTestingDataTypeQuery,
@@ -25,14 +25,14 @@ func TestMapRows(t *testing.T) {
 	count := 3
 	uuids := make([]string, count)
 
-	expectedData := make(map[string]testingDataType)
+	expectedData := make(map[string]TestingDataType)
 	for i := 0; i < count; i++ {
-		testData := genFakeTestingDataType(t)
+		testData := NewFakeTestingDataType(t)
 		result, execErr := ExecContext(
 			context.TODO(),
 			db,
 			preparedStatement,
-			testData.asParameters()...,
+			testData.ParameterValues()...,
 		)
 		require.NoError(t, execErr)
 		require.NotNil(t, result)
@@ -59,7 +59,7 @@ func TestMapRows(t *testing.T) {
 	mappedRows, err := MapRows(rows)
 	require.NoError(t, err)
 	require.NotNil(t, mappedRows)
-	require.Equal(t, count, mappedRows.Count())
+	require.Equal(t, count, len(mappedRows))
 
 	for i := range mappedRows {
 		mappedRow := mappedRows[i]
@@ -78,9 +78,8 @@ func TestMapRows(t *testing.T) {
 		require.Equal(t, data.Paragraph, mappedRow["paragraph"].(string))
 		require.Equal(t, data.CreatedAt, mappedRow["created_at"].(time.Time))
 		mData := json.RawMessage(mappedRow["metadata"].([]byte))
-		isEqual, err := areEqualJSON(string(data.Metadata), string(mData))
-		require.NoError(t, err)
-		require.True(t, isEqual)
+
+		require.JSONEq(t, string(data.Metadata), string(mData))
 	}
 
 	preparedStatement, err = PrepareStatement(deleteTestingDataTypeQuery)

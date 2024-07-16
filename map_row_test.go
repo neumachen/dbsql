@@ -11,8 +11,8 @@ import (
 func TestMapRow(t *testing.T) {
 	t.Parallel()
 
-	db := testConnectToDatabase(t)
-	defer testCloseDB(t, db)
+	db := ConnectToDatabase(t)
+	defer CloseDB(t, db)
 
 	preparedStatement, err := PrepareStatement(
 		insertTestingDataTypeQuery,
@@ -20,13 +20,13 @@ func TestMapRow(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, preparedStatement)
 
-	testData := genFakeTestingDataType(t)
+	testData := NewFakeTestingDataType(t)
 
 	result, execErr := ExecContext(
 		context.Background(),
 		db,
 		preparedStatement,
-		testData.asParameters()...,
+		testData.ParameterValues()...,
 	)
 	require.NoError(t, execErr)
 	require.NotNil(t, result)

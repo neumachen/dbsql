@@ -13,7 +13,7 @@ const (
 	parameterEscape = '\''
 	// A constant string ("$") used as the prefix for positional parameter placeholders.
 	// TODO: add support for other drivers, currently only supports PostgreSQL.
-	pgPlaceholderPrefix = "$"
+	sqlPlaceholderPrefix = "$"
 )
 
 // PrepareStatement takes an unprepared SQL statement and returns a PreparedStatement interface.
@@ -63,7 +63,7 @@ func PrepareStatement(unpreparedStatement string) (PreparedStatement, error) {
 		character, size = utf8.DecodeRune(unpreparedStatementByte[i:])
 		i += size
 
-		if character == parameterPrefix {
+		if isStartOfNamedParameter(character, unpreparedStatementByte[i:]) {
 			// Collect the characters after the parameter prefix until a non-content rune is encountered
 			for {
 				character, size = utf8.DecodeRune(unpreparedStatementByte[i:])
@@ -82,7 +82,7 @@ func PrepareStatement(unpreparedStatement string) (PreparedStatement, error) {
 
 			// Replace the named parameter with a positional parameter placeholder
 			placeholder := strconv.Itoa(positionIndex)
-			revisedStatement = append(revisedStatement, pgPlaceholderPrefix...)
+			revisedStatement = append(revisedStatement, sqlPlaceholderPrefix...)
 			revisedStatement = append(revisedStatement, placeholder...)
 
 			namedParameter = namedParameter[:0] // Reset the parameterBuilder
@@ -119,10 +119,16 @@ func PrepareStatement(unpreparedStatement string) (PreparedStatement, error) {
 	}, nil
 }
 
+// isStartOfNamedParameter checks if the current character is the start of a named parameter.
+// It returns true if the character is the parameter prefix and the next character is not a non-content rune.
+func isStartOfNamedParameter(character rune, nextBytes []byte) bool {
+	return character == parameterPrefix && !isNonContentRune(utf8.DecodeRune(nextBytes))
+}
+
 // isEmptyRune is a helper function that checks if a rune is empty.
 // It takes a rune (r) and its size (size) as input and returns a boolean value indicating whether the rune is empty.
 func isEmptyRune(r rune, size int) bool {
-	return r == utf8.RuneError && size == 0
+	return (r == utf8.RuneError && size == 0)
 }
 
 // runeUnderscore a constant rune ('_') used to specify the underscore character, which is treated as punctuation in Unicode.
@@ -131,7 +137,7 @@ const runeUnderscore = '_'
 // isNonContentRune is a helper function that checks if a rune is a non-content rune.
 // It takes a rune (r) and its size (size) as input and returns a boolean value indicating whether the rune is a non-content rune.
 func isNonContentRune(r rune, size int) bool {
-	if unicode.IsSpace(r) || unicode.IsPunct(r) {
+	if unicode.IsSpace(r) || unicode.IsPunct(r) || unicode.IsSymbol(r) {
 		return r != runeUnderscore
 	}
 

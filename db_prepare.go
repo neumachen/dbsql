@@ -10,7 +10,7 @@ import (
 
 func dbPrepare(
 	ctx context.Context,
-	dbPrep DbPreparer,
+	dbPrep DBPreparer,
 	preparedStatement PreparedStatement,
 	binderFuncs ...BindParameterValueFunc,
 ) (
@@ -25,9 +25,7 @@ func dbPrepare(
 		return nil, errors.New("prepared statement is nil")
 	}
 
-	if internal.IsNil(ctx) {
-		ctx = context.Background()
-	}
+	ctx = internal.InitIfNilContext(ctx)
 
 	prepared, err := dbPrep.PrepareContext(ctx, preparedStatement.Revised())
 	if err != nil {

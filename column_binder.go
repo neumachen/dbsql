@@ -1,239 +1,138 @@
 package dbsql
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/neumachen/dbsql/internal"
 )
 
-// Column represents a database column name.
-//
-// It is a type alias for string, providing type safety and clarity
-// when working with column names in database operations.
-type Column string
+// ColumnBinder is an interface that represents a column binder.
+// It provides methods to access the column, bind the column, and retrieve binding rules.
+type ColumnBinder interface {
+	// Column returns the Column associated with this ColumnBinder.
+	Column() Column
 
-// String returns the Column as a string.
-//
-// This method allows Column to satisfy the Stringer interface,
-// making it easy to use in string contexts.
-//
-// Returns:
-//   - string: The column name as a string.
-//
-// Example:
-//
-//	col := Column("user_id")
-//	fmt.Println(col.String()) // Output: user_id
-func (c Column) String() string {
-	return string(c)
+	// BindColumn binds the column to the provided MappedRow.
+	// It returns an error if the binding operation fails.
+	BindColumn(mappedRow MappedRow) error
+
+	// BindingRules returns the ColumnBindingRules associated with this ColumnBinder.
+	BindingRules() ColumnBindingRules
 }
 
-// Columns is a slice of Column values.
-//
-// It represents a collection of database columns, typically used
-// to describe the structure of a database table or query result.
-type Columns []Column
+// ColumnBindersFilterFunc is a function type used for filtering ColumnBinders.
+type ColumnBindersFilterFunc func(i int, columnBinders ColumnBinders) (bool, error)
 
-// Count returns the number of columns in the Columns slice.
-//
-// Returns:
-//   - int: The number of columns.
+// ColumnBinders is a slice of ColumnBinder.
+type ColumnBinders []ColumnBinder
+
+// DefineColumnBinders creates a new ColumnBinders from the given ColumnBinder slice.
 //
 // Example:
 //
-//	cols := Columns{Column("id"), Column("name"), Column("email")}
-//	fmt.Println(cols.Count()) // Output: 3
-func (c Columns) Count() int {
-	return len(c)
+//	binder1 := DefineColumnBinding(column1, binderFunc1)
+//	binder2 := DefineColumnBinding(column2, binderFunc2)
+//	binders := DefineColumnBinders(binder1, binder2)
+func DefineColumnBinders(columnBinder ...ColumnBinder) ColumnBinders {
+	columnBinders := make(ColumnBinders, len(columnBinder))
+	copy(columnBinders, columnBinder)
+	return columnBinders
 }
 
-// HasColumn checks if the Columns slice contains the given column.
-//
-// Parameters:
-//   - column: The Column to search for.
-//
-// Returns:
-//   - bool: true if the column is found, false otherwise.
+// FilterUsingFunc filters the ColumnBinders using the provided ColumnBindersFilterFunc.
+// It returns a new ColumnBinders containing only the elements for which the filter function returns true.
 //
 // Example:
 //
-//	cols := Columns{Column("id"), Column("name"), Column("email")}
-//	fmt.Println(cols.HasColumn(Column("name")))  // Output: true
-//	fmt.Println(cols.HasColumn(Column("phone"))) // Output: false
-func (c Columns) HasColumn(column Column) bool {
-	found := false
-	for i := range c {
-		if found = c[i] == column; found {
-			return found
+//	binders := DefineColumnBinders(binder1, binder2, binder3)
+//	filteredBinders, err := binders.FilterUsingFunc(func(i int, cb ColumnBinders) (bool, error) {
+//		return cb[i].Column().Name() == "id", nil
+//	})
+//	if err != nil {
+//		// Handle error
+//	}
+//	// filteredBinders now contains only the binders for columns named "id"
+func (c ColumnBinders) FilterUsingFunc(
+	filterFunc ColumnBindersFilterFunc,
+) (
+	ColumnBinders,
+	error,
+) {
+	copied := 0
+	dupColumnBinders := make(ColumnBinders, len(c))
+	copy(dupColumnBinders, c)
+
+	for i := 0; i < len(dupColumnBinders); i++ {
+		b, err := filterFunc(i, dupColumnBinders)
+		if err != nil {
+			return nil, err
+		}
+		if b {
+			dupColumnBinders[copied] = dupColumnBinders[i]
+			copied++
 		}
 	}
-	return found
-}
-
-// ColumnBinderFunc is a function type that defines how to bind a column value from a mapped row to a struct field.
-//
-// A ColumnBinderFunc takes two parameters:
-//   - column: The Column object representing the database column.
-//   - mappedRow: The MappedRow object containing the row data.
-//
-// It returns an error if the binding process fails.
-//
-// This function type is typically used in row mapping operations to customize how
-// column values are bound to struct fields. It allows for type-specific binding logic,
-// data transformations, and custom error handling during the binding process.
-//
-// Parameters:
-//   - column: A Column object representing the database column being bound.
-//   - mappedRow: A MappedRow object containing the data for the current row.
-//
-// Returns:
-//   - error: An error if the binding process fails, or nil if successful.
-//
-// Example:
-//
-//	type User struct {
-//	    ID   int
-//	    Name string
-//	}
-//
-//	// Define a custom ColumnBinderFunc for the "id" column
-//	idBinder := func(column Column, mappedRow MappedRow) error {
-//	    value, found := mappedRow.Get(column)
-//	    if !found {
-//	        return fmt.Errorf("column %s not found", column)
-//	    }
-//	    id, ok := value.(int)
-//	    if !ok {
-//	        return fmt.Errorf("expected int for column %s, got %T", column, value)
-//	    }
-//	    user.ID = id
-//	    return nil
-//	}
-//
-//	// Use the custom binder
-//	binderMap := ColumnBinderMap{
-//	    Column("id"): idBinder,
-//	}
-//
-// Note: The actual implementation of MappedRow is assumed to be available in the package.
-type ColumnBinderFunc func(column Column, mappedRow MappedRow) error
-
-// ColumnBinderMap is a map of Column to ColumnBinderFunc, used to map row data to a struct.
-//
-// It provides a flexible way to define custom binding logic for each column
-// when mapping database rows to Go structs.
-type ColumnBinderMap map[Column]ColumnBinderFunc
-
-// Count returns the number of columns in the ColumnBinderMap.
-//
-// Returns:
-//   - int: The number of columns in the map.
-//
-// Example:
-//
-//	binderMap := ColumnBinderMap{
-//	    Column("id"):    idBinder,
-//	    Column("name"):  nameBinder,
-//	    Column("email"): emailBinder,
-//	}
-//	fmt.Println(binderMap.Count()) // Output: 3
-func (c ColumnBinderMap) Count() int {
-	return len(c)
-}
-
-// Columns returns a slice of Column representing the columns (field names) in the ColumnBinderMap.
-//
-// The order of the columns is determined by the order in which they were added to the map.
-//
-// Returns:
-//   - Columns: A slice of Column objects representing the columns in the map.
-//
-// Example:
-//
-//	binderMap := ColumnBinderMap{
-//	    Column("id"):    idBinder,
-//	    Column("name"):  nameBinder,
-//	    Column("email"): emailBinder,
-//	}
-//	cols := binderMap.Columns()
-//	for _, col := range cols {
-//	    fmt.Println(col)
-//	}
-//	// Output (order may vary):
-//	// id
-//	// name
-//	// email
-func (c ColumnBinderMap) Columns() Columns {
-	count := len(c)
-	if count < 1 {
-		return nil
+	if copied < 1 {
+		return c, nil
 	}
-	columns := make(Columns, count)
-	for k := range c {
-		columns[count-1] = k
-		count--
+	for i := copied; i < len(dupColumnBinders); i++ {
+		dupColumnBinders[i] = nil
 	}
 
-	return columns
+	return dupColumnBinders[:copied], nil
 }
 
-// BindColumnToField creates a ColumnBinderFunc that binds a column value to a field of type T.
-//
-// This function is a generic helper that simplifies the process of binding column values
-// to struct fields, especially when working with custom types or when additional processing
-// is needed during the binding.
-//
-// Type Parameters:
-//   - T: The type of the value to be bound. This should match the type of the column value.
+// ColumnBinderFunc is a function type that defines the signature for binding a column to a field.
+// It takes a MappedRow and a ColumnBinder as input and returns an error if the binding fails.
+type ColumnBinderFunc func(mappedRow MappedRow, columnBinder ColumnBinder) error
+
+// BindColumnToField is a generic function that creates a ColumnBinderFunc for binding a specific type T.
+// It takes a bind function as input and returns a ColumnBinderFunc that handles the binding process.
 //
 // Parameters:
-//   - bindFunc: A function that takes a value of type T and returns an error.
-//     This function is responsible for setting the value on the target struct field.
+//   - bindFunc: A function that takes a value of type T and returns an error if binding fails.
 //
 // Returns:
-//   - ColumnBinderFunc: A function that conforms to the ColumnBinderFunc type and can be
-//     used in row mapping operations.
-//
-// The returned ColumnBinderFunc does the following:
-//  1. Retrieves the value for the given column from the MappedRow.
-//  2. If the value is nil, zero, or not found, it returns nil (no error).
-//  3. Attempts to assert the value to type T.
-//  4. If the type assertion fails, it returns an error with details about the mismatch.
-//  5. If successful, it calls the provided bindFunc with the typed value.
+//   - A ColumnBinderFunc that can be used to bind a column to a field of type T.
 //
 // Example usage:
 //
-//	type MyStruct struct {
-//	  ID int
-//	}
-//
-//	binder := BindColumnToField(func(value int) error {
-//	  s.ID = value
-//	  return nil
+//	intBinder := BindColumnToField(func(value int) error {
+//	    // Bind the int value to a field
+//	    return nil
 //	})
-//
-// Error Handling:
-//   - Returns an error if the type assertion fails, providing details about the
-//     expected and actual types.
-//   - Propagates any error returned by the bindFunc.
-//
-// Note: This function uses generics and requires Go 1.18 or later.
 func BindColumnToField[T any](bindFunc func(value T) error) ColumnBinderFunc {
-	return func(column Column, mappedRow MappedRow) error {
-		value, found := mappedRow.Get(column)
-		if internal.IsNilOrZeroValue(value) || !found {
+	return func(mappedRow MappedRow, columnBinder ColumnBinder) error {
+		if internal.IsNil(columnBinder) {
+			return errors.New("column binder is nil")
+		}
+
+		value, found := mappedRow.Get(columnBinder.Column())
+		if !found {
+			if columnBinder.BindingRules().RequiredColumn() {
+				return fmt.Errorf("required column %s not found", columnBinder.Column().String())
+			}
+
 			return nil
 		}
+
+		if internal.IsNilOrZeroValue(value) {
+			return nil
+		}
+
 		typedValue, ok := value.(T)
 		if !ok {
-			// return error type assertion failed for the given
-			// value using T.
 			return fmt.Errorf(
 				"column %s has a type of %T and does not match asserted type: %T",
-				column.String(),
+				columnBinder.Column().String(),
 				value,
 				*new(T),
 			)
+		}
+
+		if internal.IsNilOrZeroValue(typedValue) {
+			return nil
 		}
 
 		return bindFunc(typedValue)

@@ -7,7 +7,7 @@ import (
 
 // QueryRow executes the prepared SQL statement as a query with the bound parameters.
 func QueryRow(
-	dbPrepExec DbPreparerExecutor,
+	dbPrepExec DBPreparerExecutor,
 	preparedStatement PreparedStatement,
 	binderFuncs ...BindParameterValueFunc,
 ) (
@@ -25,16 +25,13 @@ func QueryRow(
 // QueryRowContext executes the prepared SQL statement as a query with the bound parameters in the provided context.
 func QueryRowContext(
 	ctx context.Context,
-	dbPrepExec DbPreparerExecutor,
+	dbPrepExec DBPreparerExecutor,
 	preparedStatement PreparedStatement,
 	binderFuncs ...BindParameterValueFunc,
 ) (
 	*sql.Row,
 	error,
 ) {
-	// TODO: Should this be resetting the bound values for the given prepared statement, or should it be left to the
-	// caller? An argument can be made that the internal prepare method sets the bound values in this block. But does
-	// that also mean that when a gdiven prepared statement that already has bound values will be reset?
 	defer func() {
 		preparedStatement.ResetParametersValues()
 	}()

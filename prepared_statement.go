@@ -91,7 +91,7 @@ func (p *preparedStatement) ResetParametersValues() {
 
 // UnpreparedStatement returns the original SQL statement before preparation.
 func (p preparedStatement) UnpreparedStatement() string {
-	return string(p.originalStatement)
+	return p.originalStatement
 }
 
 // Revised returns the parsed query with positional parameters.
@@ -138,6 +138,20 @@ func (p *preparedStatement) BindParameterValue(parameterName string, bindValue a
 
 // BindParameterValueFunc is a function that sets the value for a named parameter in the query.
 type BindParameterValueFunc func(p PreparedStatement) error
+
+// BindParameterValueFuncs ...
+type BindParameterValueFuncs []BindParameterValueFunc
+
+// NewBindParameterValueFuncs ...
+func NewBindParameterValueFuncs(bindParameterValueFuncs ...BindParameterValueFunc) BindParameterValueFuncs {
+	count := len(bindParameterValueFuncs)
+	if count == 0 {
+		return nil
+	}
+	newBindParameterValueFuncs := make(BindParameterValueFuncs, count)
+	copy(newBindParameterValueFuncs, bindParameterValueFuncs)
+	return newBindParameterValueFuncs
+}
 
 // BindParameterValue creates a BindNamedParameterValueFunc that sets the value for a named parameter.
 func BindParameterValue(bindParameter string, bindValue any) BindParameterValueFunc {
